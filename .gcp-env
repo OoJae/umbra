@@ -1,0 +1,6 @@
+PROJECT_ID=umbra-tee-08132358
+REGION=us-central1
+ZONE=us-central1-a
+SA_EMAIL=umbra-tee-sa@umbra-tee-08132358.iam.gserviceaccount.com
+STATIC_IP=136.112.118.220
+IMAGE_REPO=us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine
