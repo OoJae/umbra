@@ -24,3 +24,6 @@ engine/.venv/
 # misc
 .DS_Store
 *.log
+
+# playwright-mcp scratch
+.playwright-mcp/
