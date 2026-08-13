@@ -1,0 +1,5 @@
+# pnpm 11 requires native build-script approval to live here rather than in package.json.
+# unrs-resolver is a native dependency of eslint-config-next; without this, every
+# `pnpm install` / `pnpm build` aborts with ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  unrs-resolver: true
