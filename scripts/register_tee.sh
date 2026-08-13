@@ -7,13 +7,19 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+# Capture the caller's intent BEFORE sourcing .env, which would otherwise clobber it and
+# silently anchor the wrong engine's key.
+CALLER_ENGINE_URL="${ENGINE_URL:-}"
+CALLER_ENGINE_PUBLIC_URL="${ENGINE_PUBLIC_URL:-}"
+
 set -a
 # shellcheck disable=SC1091
 source .env
 set +a
 
-ENGINE_URL="${ENGINE_URL:-http://127.0.0.1:8080}"
-ENGINE_PUBLIC_URL="${ENGINE_PUBLIC_URL:-$ENGINE_URL}"
+ENGINE_URL="${CALLER_ENGINE_URL:-${ENGINE_URL:-http://127.0.0.1:8080}}"
+ENGINE_PUBLIC_URL="${CALLER_ENGINE_PUBLIC_URL:-$ENGINE_URL}"
 MIN_GAS_WEI="${MIN_GAS_WEI:-1000000000000000000}"   # 1 C2FLR
 TOPUP="${TOPUP:-5ether}"
 

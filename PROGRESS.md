@@ -175,7 +175,81 @@ balance.
   then `registerTeeSigner` anchors its key.
 
 ### BLOCKERS
-- **GCP billing account `01AF07-2D3E14-2F5A56` is closed** (`open: False`). gcloud is installed and
-  authenticated as captainjoe550@gmail.com, but Compute Engine and Confidential Space cannot be
-  enabled until billing is reactivated. Operator is reopening it; the setup runs the moment it is
-  live. Nothing in Phases 1–3 depends on this.
+- _(resolved in Phase 2 — the operator opened billing account `01BC14-084FF7-FE7753`)_
+
+---
+
+## Phase 2 (TEE engine) — H14 gate: **PASSED TWICE**, locally and on real Intel TDX
+
+### DONE
+
+**The engine settles for real.** Two seeded orders in → a signed `settleBatch` landing on Coston2
+→ balances moved. 51/51 assertions in `scripts/seed_demo.py`, every one of them read back from
+chain independently of what the engine reported about itself.
+
+| Run | Enclave | Settlement tx |
+|---|---|---|
+| local | simulated | `0x195de036…` |
+| **Confidential Space** | **real Intel TDX** | `0x9bde5c5a…` |
+
+**The real TEE is live**, not a roadmap item: `http://136.112.118.220:8080`, Intel TDX
+`c3-standard-4` in GCP project `umbra-tee-08132358`. The attestation is a Google-signed RS256
+vTPM token with `hwmodel: GCP_INTEL_TDX` and `secboot: true` — the simulated path emits
+`alg: none` and `hwmodel: SIMULATED`, so the two are impossible to confuse. Its `eat_nonce` equals
+`keccak256(bytes20(teeAddr) ‖ bytes20(vaultAddr))` and its `image_digest` is launcher-asserted, so
+the token binds this key, this vault and this code. `TeeRegistry` anchors its keccak; `/attestation`
+reports `hash_matches: true, signer_matches: true`. Full details in `docs/addresses.md`.
+
+**54 unit tests green**, plus the two gate runs.
+
+### DECISIONS
+
+- **EIP-712 parity was proven before any engine code was written.** Python reproduces the frozen
+  fixture's domain separator, per-fill hashes, array hash, struct hash and digest, and produces a
+  **byte-identical 65-byte signature**. That retired the §9-C pivot trigger up front. Two things
+  make it work and are now locked by tests: a **filtered types dict** (the spec has two
+  unreferenced root types, so the full dict makes eth_account's primary-type inference ambiguous
+  and raise), and the `0x19` prefix in the digest — omitting it yields a plausible-looking but
+  wrong hash.
+- **Buyers reserve quote at their LIMIT price, not the mid.** The mid is unknown at accept time
+  but bounded: an eligible BUY has `mid ≤ limit`, and `amountQuote` is monotonic in price, so the
+  limit is a tight upper bound on everything that order can ever owe. This closes the multi-order
+  escrow double-spend the build guide never mentions — and which would revert the *entire* batch.
+  Because withdrawals are deliberately ungated, reservations alone are insufficient, so the batch
+  also re-reads live balances before signing and, on a shortfall, drops the trader and re-matches
+  **from scratch** (dropping a trader changes the pro-rata denominators).
+- **The operator token is stored as a SHA-256 hash.** Under Confidential Space a `tee-env` value
+  lands in VM metadata *and* in the attestation token's `env_override` claim — the same JWT we
+  publish at `/attestation` and hash on-chain. Publishing a hash of the token leaks nothing.
+- **The engine reads the mid through the vault's own `peekPrice1e6()`/`previewBand()`** rather than
+  a raw FtsoV2 call, so it never reimplements the contract's decimals normalization. Feed decimals
+  genuinely differ (XRP/USD 6, FLR/USD 8), so that is a real divergence risk avoided.
+- **No new dependencies.** `python-dotenv` was already transitively present; the Confidential Space
+  socket client is stdlib `http.client` over `AF_UNIX`; JWT decoding is a base64url split. Adding a
+  dependency would regenerate `uv.lock`, change the image digest, and stale the on-chain anchor.
+- **The no-plaintext rule is structural, not a convention.** Every value-bearing field on the order
+  model is `repr=False`, so an accidental `log.info(order)` physically cannot print an amount, and
+  `log_event()` rejects any field not on an allowlist. Both are covered by tests.
+- **A Confidential Space socket failure degrades honestly rather than crashing.** A real TDX VM
+  whose token fetch failed would still match and settle, reporting `status: "fallback"` through
+  `/attestation`. That path did not trigger — the socket worked first try.
+
+### KNOWN STATE / CAVEATS
+
+- The VM runs the **`confidential-space-debug`** image family, so the token carries
+  `dbgstat: enabled`. The production family would report `disabled-since-boot`, but relaunching
+  mints a new enclave key and needs a re-anchor. Worth doing before recording if time allows.
+- The enclave mints a fresh key on **every boot**, so `scripts/register_tee.sh` must be re-run
+  after any restart. `tee-restart-policy=Never` prevents a silent container restart from rotating
+  the key mid-demo.
+- `/orderbook/public` counts are plaintext-derived: with a single order in the book, `count_buys=1`
+  discloses that order's side. The build guide mandates this shape; it is stated in the README
+  rather than hidden.
+
+### NEXT
+- Phase 3 (H14–H19): Next.js pages — Trade (deposit/withdraw, EIP-712 sign, libsodium sealed-box,
+  Dark Book), Settlement, Verify (decode the real TDX attestation + on-chain anchor match, with a
+  REAL-TEE badge that is now genuinely earned), How-it-works.
+- `web/src/lib/crypto.ts` must decode the engine's X25519 key with
+  `sodium.base64_variants.ORIGINAL` — libsodium-wrappers defaults to URLSAFE_NO_PADDING and would
+  silently mis-decode the `+` and `/` characters.

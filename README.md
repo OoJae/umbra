@@ -41,6 +41,14 @@ the product.
 | TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) |
 | FXRP (base) | [`0x0b6A3645c240605887a5532109323A3E12273dc7`](https://coston2-explorer.flare.network/address/0x0b6A3645c240605887a5532109323A3E12273dc7) |
 | USDT0 (quote) | [`0xC1A5B41512496B80903D1f32d6dEa3a73212E71F`](https://coston2-explorer.flare.network/address/0xC1A5B41512496B80903D1f32d6dEa3a73212E71F) |
+| TEE signer (attested) | [`0x442CE96a506e8492aA63C728950A51d92e38303e`](https://coston2-explorer.flare.network/address/0x442CE96a506e8492aA63C728950A51d92e38303e) |
+
+**The TEE is real.** The engine runs in a Google Confidential Space VM on **Intel TDX**, and its
+settlement key was generated inside the enclave. The attestation is a Google-signed RS256 vTPM
+token (`hwmodel: GCP_INTEL_TDX`, `secboot: true`), whose nonce commits to exactly this enclave key
+and this vault, and whose image digest is asserted by the launcher rather than by our own code.
+Live engine: `http://136.112.118.220:8080` · sample settlement signed inside the enclave:
+[`0x9bde5c5a…`](https://coston2-explorer.flare.network/tx/0x9bde5c5a801c17d4d0268aa7deb967cbd8daff228cf1044d396cf5f1ee140aca)
 
 Every address was verified on-chain rather than copied from documentation; the derivation and the
 re-runnable verification command for each are in [docs/addresses.md](docs/addresses.md).
@@ -91,6 +99,11 @@ a bogus signer registered, and while the oracle reverts) and once on real chain
   one, precisely because withdrawals are ungated.
 - No MEV protection between the vault and external DEXes — Umbra protects the matching process, not
   what you do with the proceeds afterwards.
+- The public Dark Book returns order *counts* alongside the ciphertexts, so with a single order
+  in the book the count discloses that order's side. The individual blobs stay opaque and carry no
+  side annotation, but the aggregate is a real (small) leak rather than a perfect one.
+- The Confidential Space VM currently runs the `confidential-space-debug` image family, so its
+  attestation reports `dbgstat: enabled`.
 - Rounding is floor, so a fill can differ by at most one quote unit (~$0.000001) from an exact
   computation. This shifts value between counterparties, never into or out of the vault: the same
   integer is debited from the buyer and credited to the seller.
