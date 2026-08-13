@@ -1,0 +1,3 @@
+@flarenetwork/flare-periphery-contracts/=node_modules/@flarenetwork/flare-periphery-contracts/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+forge-std/=lib/forge-std/src/
