@@ -105,7 +105,77 @@ later env change.
 - **README — the USDT0 ≈ $1 peg is implicit** (we clear at XRP/USD but settle in USDT0). Say it
   out loud or it reads as an unnoticed bug.
 
+---
+
+## Phase 1 (Contracts) — H8 gate: **PASSED**, including the optional explorer verification
+
+### DONE
+
+**Deployed and source-verified on Coston2:**
+
+| Contract | Address |
+|---|---|
+| UmbraVault | `0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10` |
+| TeeRegistry | `0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4` |
+
+**239 tests green** — the whole vault matrix is written once against an abstract base and
+instantiated three times (6/6, 18/6, 6/18), so the decimal cases cost nothing extra to cover.
+Includes the three withdrawal-guardrail proofs (withdraw works with no signer registered, with a
+bogus signer, and while the oracle reverts), whole-batch atomicity with byte-identical state after a
+revert, band edges inclusive at ±50 bps and one unit outside in both directions, and 11
+fixture-driven EIP-712 parity tests.
+
+**Live on-chain proofs** (all in `docs/addresses.md` with tx links): `quoteFor(10 FXRP, $1.010002)`
+returns `10100020` from deployed bytecode · `peekPrice1e6()` reads live FTSOv2 through the vault's
+own normalization path · approve → deposit → withdraw round trip returns the wallet to its starting
+balance.
+
+### DECISIONS
+
+- **`evm_version` london → cancun.** The Phase-0 setting was based on the widely-repeated claim that
+  Flare rejects PUSH0. I probed Coston2 directly with `cast call --create` (with an `0xFE` control
+  that correctly rejected, so the method is sound): **PUSH0, MCOPY and TSTORE all execute**. The
+  chain is full Cancun and the folklore is stale. This was also forced — OpenZeppelin 5.6.1's
+  `utils/Bytes.sol` uses `mcopy` and cannot compile for london.
+- **The settlement formula is frozen** as
+  `floor(amountBase * clearingPrice1e6 * 10^quoteDec / (10^baseDec * 1e6))`, collapsed to one signed
+  exponent fixed in the constructor (`quoteScaleNum`/`quoteScaleDen`, exactly one of which is always
+  1). `settleBatch` **computes** the quote, asserts the signed value equals it, then applies its own
+  number — so drift reverts loudly with `QuoteMismatch(fillIndex, provided, expected)` instead of
+  settling something other than what was signed. `quoteFor()` is public so the engine can pre-flight
+  every fill and refuse to sign a batch that would revert.
+- **`settleBatch` is permissionless.** The TEE signature is the authorization, so the operator
+  cannot censor a batch once the enclave has signed it, and settlement does not depend on the TEE
+  address holding gas.
+- **`lastBatchId` is written in step 1, not step 5.** State-equivalent within a transaction, but it
+  makes reentrancy through the oracle read structurally impossible independent of `nonReentrant`.
+- **`BatchSettled` trimmed** from 12 args to 8 to clear a stack-too-deep. Dropped only what is
+  already derivable: `relayer` and `settledAt` (on the receipt/block) and `totalBase`/`totalQuote`
+  (sum the `FillSettled` logs). `settleBatch` itself is split into `_validateShape` /
+  `_verifySigner` / `_checkOracleAndBand` / `_applyFills` for the same reason — `via_ir` would have
+  tripled compile times for the rest of the hackathon.
+- **Oracle staleness enforced**, 900s default against a feed measured at ~2s old, with an owner
+  kill-switch (`maxOracleAge = 0`). The TEE's claimed `oracleTs` is checked for recency but
+  deliberately **not** required to equal the chain's — block-latency feeds tick every block, so
+  equality would revert on stage.
+- **Band capped at 1000 bps** by a hard constant, so the owner setter cannot become a licence to
+  settle arbitrarily off-market; every change emits an event.
+- **`renounceOwnership` disabled on TeeRegistry** (it would freeze signer rotation and brick
+  settlement on the next enclave restart) but **left enabled on UmbraVault**, whose owner governs
+  only the band — renouncing there is strictly good.
+- **`base`/`quote` renamed to `baseToken`/`quoteToken`.** `base` is an exported chain object in
+  `viem/chains` and would collide in `web/src/lib/contracts.ts`.
+
 ### NEXT
-- Operator: fund wallets (+ optionally start GCP auth).
-- Then Phase 1 (H2–H8): `TeeRegistry.sol` + `UmbraVault.sol`, full forge test matrix,
-  `Deploy.s.sol`, deploy to Coston2, record addresses, manual `cast` deposit.
+- Phase 2 (H8–H14): engine modules `crypto.py`, `attestation.py`, `models.py`, `matching.py`,
+  `chain.py` + FastAPI endpoints. `matching.py` must mirror `_quoteForBase` exactly — integers only,
+  never float or Decimal — and `engine/tests/` must assert against `docs/eip712-fixture.json`, which
+  already carries the layer-by-layer hashes and a byte-identical signature.
+- Deploy order for the enclave: the vault is live, so the TEE can boot with `VAULT_ADDRESS` set,
+  then `registerTeeSigner` anchors its key.
+
+### BLOCKERS
+- **GCP billing account `01AF07-2D3E14-2F5A56` is closed** (`open: False`). gcloud is installed and
+  authenticated as captainjoe550@gmail.com, but Compute Engine and Confidential Space cannot be
+  enabled until billing is reactivated. Operator is reopening it; the setup runs the moment it is
+  live. Nothing in Phases 1–3 depends on this.

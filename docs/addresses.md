@@ -123,8 +123,8 @@ Both flavours are exercised by `contracts/src/ProbeFtsoV2.sol`, which compiles c
 
 | Contract | Address | Deploy tx | Status |
 |---|---|---|---|
-| TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) | [`0xba8633d2…`](https://coston2-explorer.flare.network/tx/0xba8633d2a8a5dfb92dfc73a02f310325f0b0bda8dc44f80843712fd987dccb23) | DEPLOYED |
-| UmbraVault | [`0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10`](https://coston2-explorer.flare.network/address/0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10) | [`0x6a0039c1…`](https://coston2-explorer.flare.network/tx/0x6a0039c142a9e0dedeb67954be073d3e8fff5e430e0147440fcd18a6697cc817) | DEPLOYED |
+| TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) | [`0xba8633d2…`](https://coston2-explorer.flare.network/tx/0xba8633d2a8a5dfb92dfc73a02f310325f0b0bda8dc44f80843712fd987dccb23) | DEPLOYED + SOURCE VERIFIED |
+| UmbraVault | [`0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10`](https://coston2-explorer.flare.network/address/0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10) | [`0x6a0039c1…`](https://coston2-explorer.flare.network/tx/0x6a0039c142a9e0dedeb67954be073d3e8fff5e430e0147440fcd18a6697cc817) | DEPLOYED + SOURCE VERIFIED |
 | TEE signer | _(generated inside the enclave at boot)_ | — | PENDING (Phase 2) |
 
 Owner of both: DEPLOYER `0x70a3D24068C064195a17D921712FdC747F2465f9`.
