@@ -1,0 +1,92 @@
+{
+  "_comment": [
+    "Cross-language EIP-712 test vector, derived from docs/eip712.json (the frozen spec).",
+    "Consumed by contracts/test/Eip712Parity.t.sol (forge), engine/tests (pytest, Phase 2) and",
+    "web (viem, Phase 3). If any two of those three disagree, this file says which layer diverged:",
+    "compare domainSeparator, then the per-fill struct hashes, then fillsArrayHash, then",
+    "batchStructHash, then digest. That turns a parity bug from an hour of bisecting into one diff.",
+    "",
+    "The signing key is a PUBLIC TEST VECTOR, not a secret, and holds no funds on any network:",
+    "  privateKey = keccak256(utf8(signer.derivation))",
+    "  Solidity: uint256(keccak256(bytes('umbra.eip712.fixture.v1')))",
+    "  Python:   int.from_bytes(Web3.keccak(text='umbra.eip712.fixture.v1'), 'big')",
+    "  viem:     keccak256(toHex('umbra.eip712.fixture.v1'))",
+    "All three stacks use RFC 6979 deterministic nonces, so they must produce a BYTE-IDENTICAL",
+    "signature — the parity assertion is on the 65 bytes, not merely on the recovered address.",
+    "",
+    "verifyingContract is a SENTINEL, deliberately not the live vault, so redeploying the vault",
+    "never stales this file. Regenerate with:",
+    "  forge script script/GenEip712Fixture.s.sol:GenEip712Fixture"
+  ],
+  "version": 1,
+  "domain": {
+    "name": "Umbra",
+    "version": "1",
+    "chainId": 114,
+    "verifyingContract": "0x000000000000000000000000000000000000c0DE"
+  },
+  "decimals": { "base": 6, "quote": 6 },
+  "signer": {
+    "derivation": "umbra.eip712.fixture.v1",
+    "address": "0xD8CB8187D855Dc81066A3D655815047968F21500"
+  },
+  "batch": {
+    "message": {
+      "batchId": 1,
+      "clearingPrice1e6": 1010002,
+      "oracleTs": 1756000000,
+      "fills": [
+        {
+          "buyer": "0x170E2Fd50CC9c4B5eEF7F2beAc2Dd3d06aC4bc09",
+          "seller": "0x016fb6f97db4e99611F789Ae172d9DCA9593BE0b",
+          "amountBase": 2500000,
+          "amountQuote": 2525005
+        },
+        {
+          "buyer": "0x170E2Fd50CC9c4B5eEF7F2beAc2Dd3d06aC4bc09",
+          "seller": "0x016fb6f97db4e99611F789Ae172d9DCA9593BE0b",
+          "amountBase": 1000000,
+          "amountQuote": 1010002
+        }
+      ]
+    },
+    "expected": {
+      "domainSeparator": "0xc8890cde892cbfbb6bb0c0b5dc3538acd2a4bbcd5eb0b790d0b3d2bec0fb3cb0",
+      "fillStructHashes": [
+        "0xf149ce4687a03556198fc9e4404e39766edc920e2499a3c503a8107ad16f5cf8",
+        "0x582873d648e43d2cc9a3b6181ca3110a6fc1848bb1dcceb5851ebc69b64acbe9"
+      ],
+      "fillsArrayHash": "0x5f976a293d614312d9034f63ac9fab9ab6c9bdb1e3d00ec3b8849077969376b4",
+      "batchStructHash": "0x3da7cfe4412138aec5f6e42913f3de522d368f6de06b0d095acdc0d96b77cac8",
+      "digest": "0x65a64849ec5415fb6a531561e9aafda9b5eac3360cf35bb02e0c206185121fa1",
+      "signature": "0x2f595327e89a81a74994bc0ed61853e8929779c48f7564e35bf2b979675647ef533ff282589b0c9ef01370fce2db05ddc55892152f4d82a831d744d963c5c5661b",
+      "v": 27,
+      "r": "0x2f595327e89a81a74994bc0ed61853e8929779c48f7564e35bf2b979675647ef",
+      "s": "0x533ff282589b0c9ef01370fce2db05ddc55892152f4d82a831d744d963c5c566"
+    }
+  },
+  "order": {
+    "message": {
+      "trader": "0x170E2Fd50CC9c4B5eEF7F2beAc2Dd3d06aC4bc09",
+      "side": 0,
+      "amountBase": 2500000,
+      "limitPrice1e6": 1015000,
+      "nonce": 1,
+      "deadline": 1756003600
+    },
+    "expected": {
+      "orderStructHash": "0xb1aa354591d5b465aadab7a801b45ab0862d3b024f8c982ba40a9788a39fe4cb",
+      "digest": "0xee41ab2b88e5702c7cf7e385a51691def285fe49bb01e03bef815a373ed86c2b",
+      "signature": "0xd015c28e67200b6564f77ca3e2b2bcb77300ea53ce3972e2d74850f7d461946100dd4be525b1ca138e42e43505ade25e515414f9917cf112e99309a60acb5c9f1c"
+    }
+  },
+  "_notes": [
+    "amountQuote values satisfy the frozen settlement formula at 6/6 decimals:",
+    "  floor(amountBase * clearingPrice1e6 * 10^quoteDec / (10^baseDec * 1e6))",
+    "  2500000 -> 2525005, 1000000 -> 1010002",
+    "eth_account note: docs/eip712.json contains Order, Fill and Batch, and both Order and Batch are",
+    "unreferenced, so primary-type inference is ambiguous. Always pass a FILTERED types dict:",
+    "  {'Batch': ..., 'Fill': ...} when signing batches, {'Order': ...} when verifying orders.",
+    "viem note: pass types WITHOUT EIP712Domain and set primaryType explicitly; numerics as bigint."
+  ]
+}

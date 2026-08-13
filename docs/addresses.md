@@ -119,10 +119,40 @@ grep -n -A5 "function getFeedById" contracts/node_modules/@flarenetwork/flare-pe
 
 Both flavours are exercised by `contracts/src/ProbeFtsoV2.sol`, which compiles clean.
 
-## Deployed by us
+## Deployed by us — Coston2, Phase 1
 
-| Contract | Address | Tx | Status |
+| Contract | Address | Deploy tx | Status |
 |---|---|---|---|
-| TeeRegistry | _(Phase 1)_ | — | PENDING |
-| UmbraVault | _(Phase 1)_ | — | PENDING |
-| TEE signer | _(generated in enclave at boot, Phase 2)_ | — | PENDING |
+| TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) | [`0xba8633d2…`](https://coston2-explorer.flare.network/tx/0xba8633d2a8a5dfb92dfc73a02f310325f0b0bda8dc44f80843712fd987dccb23) | DEPLOYED |
+| UmbraVault | [`0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10`](https://coston2-explorer.flare.network/address/0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10) | [`0x6a0039c1…`](https://coston2-explorer.flare.network/tx/0x6a0039c142a9e0dedeb67954be073d3e8fff5e430e0147440fcd18a6697cc817) | DEPLOYED |
+| TEE signer | _(generated inside the enclave at boot)_ | — | PENDING (Phase 2) |
+
+Owner of both: DEPLOYER `0x70a3D24068C064195a17D921712FdC747F2465f9`.
+`UmbraVault` is the EIP-712 `verifyingContract` — `docs/eip712.json` has been updated to match.
+
+### Live proofs against the deployed vault
+
+```bash
+# the settlement formula, evaluated by deployed bytecode: 10 FXRP at $1.010002 -> 10.100020 USDT0
+cast call $VAULT_ADDRESS "quoteFor(uint256,uint256)(uint256)" 10000000 1010002 --rpc-url $RPC
+#   -> 10100020
+
+# FTSOv2 read through the vault's own normalization path
+cast call $VAULT_ADDRESS "peekPrice1e6()(uint256,uint64)" --rpc-url $RPC
+#   -> 1009924, 1786659482   ($1.009924, 1 second old)
+
+cast call $VAULT_ADDRESS "previewBand(uint256)(bool,uint256,uint256)" 1010002 --rpc-url $RPC
+#   -> true, 1009924, 0      (in band, 0 bps deviation)
+```
+
+### Manual custody round trip (gate H8)
+
+| Step | Tx |
+|---|---|
+| approve 1.000000 FXRP | [`0xdaac3534…`](https://coston2-explorer.flare.network/tx/0xdaac35344b0efb1ba92cb435f3927064f37507ec68419ee854e1e11e956132ef) |
+| deposit | [`0x0960b03e…`](https://coston2-explorer.flare.network/tx/0x0960b03e5a6426fd5f183f1dfd827708db21e45c0c3a29592d175608b6ab24c0) |
+| **withdraw** | [`0x6bf57ae7…`](https://coston2-explorer.flare.network/tx/0x6bf57ae79c58655e9ad242c6a4bab908840d286d479f3338b7d63892376fcdb5) |
+
+After deposit, three reads agreed exactly: vault internal balance `1000000`, FXRP held by the vault
+`1000000`, deployer wallet `9000000`. After withdraw the wallet was back to `10000000` and the
+internal balance to `0` — withdrawals are ungated on real chain, not just in tests.

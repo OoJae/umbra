@@ -13,7 +13,7 @@
     "name": "Umbra",
     "version": "1",
     "chainId": 114,
-    "verifyingContract": "0x0000000000000000000000000000000000000000"
+    "verifyingContract": "0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10"
   },
   "types": {
     "Order": [
