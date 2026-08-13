@@ -5,12 +5,18 @@ libs = ["lib", "node_modules"]
 # Bumped from the guide's ^0.8.20: @flarenetwork/flare-periphery-contracts@0.1.52
 # declares `pragma solidity ^0.8.25` in FtsoV2Interface.sol, so 0.8.20 cannot compile it.
 solc_version = "0.8.25"
-# Flare chains have historically rejected PUSH0 (Shanghai) bytecode. Targeting london keeps
-# deploys safe; revisit only if a dependency needs a cancun-only opcode.
-evm_version = "london"
+# Coston2 was probed directly (cast call --create against the live RPC, with an 0xFE control that
+# correctly rejected): PUSH0, MCOPY and TSTORE all execute, so the chain is full Cancun. The older
+# "Flare rejects PUSH0" advice is stale. Cancun is also required here — OpenZeppelin 5.6.1's
+# utils/Bytes.sol uses mcopy and will not compile for london.
+evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
-fs_permissions = [{ access = "read", path = "./out" }]
+fs_permissions = [
+    { access = "read", path = "./out" },
+    # cross-language EIP-712 + quote fixtures shared with the Python engine
+    { access = "read", path = "../docs" },
+]
 
 [rpc_endpoints]
 coston2 = "${COSTON2_RPC_URL}"
