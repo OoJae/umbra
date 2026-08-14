@@ -44,6 +44,12 @@ def main() -> int:
     parser.add_argument("--engine-url", default="http://127.0.0.1:8080")
     parser.add_argument("--base-amount", type=float, default=3.0)
     parser.add_argument("--no-withdraw", action="store_true")
+    parser.add_argument(
+        "--reverse",
+        action="store_true",
+        help="Bob buys and Alice sells. Each settled batch rotates their inventory, so flipping "
+             "direction lets the demo run repeatedly without topping up from the faucet.",
+    )
     args = parser.parse_args()
 
     env = load_env()
@@ -58,8 +64,13 @@ def main() -> int:
     fxrp = w3.eth.contract(address=Web3.to_checksum_address(env["FXRP_ADDRESS"]), abi=erc20_abi())
     usdt0 = w3.eth.contract(address=Web3.to_checksum_address(env["USDT0_ADDRESS"]), abi=erc20_abi())
 
-    alice = Account.from_key(env["ALICE_PRIVATE_KEY"])
-    bob = Account.from_key(env["BOB_PRIVATE_KEY"])
+    account_a = Account.from_key(env["ALICE_PRIVATE_KEY"])
+    account_b = Account.from_key(env["BOB_PRIVATE_KEY"])
+    # `alice` is always the buyer and `bob` always the seller from here down; --reverse just swaps
+    # which key plays which role.
+    alice, bob = (account_b, account_a) if args.reverse else (account_a, account_b)
+    buyer_name = "Bob" if args.reverse else "Alice"
+    seller_name = "Alice" if args.reverse else "Bob"
 
     # ─────────────────── step 0: preflight ───────────────────
     print("\n\033[1mSTEP 0 — preflight\033[0m")
@@ -101,8 +112,8 @@ def main() -> int:
 
     base_amount = int(args.base_amount * 10**6)
     quote_deposit = vault.functions.quoteFor(base_amount, price * 10300 // 10000).call()
-    checks.check("Alice holds enough USDT0", usdt0.functions.balanceOf(alice.address).call() >= quote_deposit)
-    checks.check("Bob holds enough FXRP", fxrp.functions.balanceOf(bob.address).call() >= base_amount)
+    checks.check(f"{buyer_name} holds enough USDT0", usdt0.functions.balanceOf(alice.address).call() >= quote_deposit)
+    checks.check(f"{seller_name} holds enough FXRP", fxrp.functions.balanceOf(bob.address).call() >= base_amount)
 
     if checks.failed:
         return checks.report()
@@ -110,8 +121,8 @@ def main() -> int:
     # ─────────────────── step 1: deposits ───────────────────
     print("\n\033[1mSTEP 1 — deposits\033[0m")
     for account, token, amount, label in (
-        (alice, usdt0, quote_deposit, "Alice USDT0"),
-        (bob, fxrp, base_amount, "Bob FXRP"),
+        (alice, usdt0, quote_deposit, f"{buyer_name} USDT0"),
+        (bob, fxrp, base_amount, f"{seller_name} FXRP"),
     ):
         before = vault.functions.balanceOf(account.address, token.address).call()
         if token.functions.allowance(account.address, vault.address).call() < amount:
@@ -140,8 +151,8 @@ def main() -> int:
     base_nonce = int(time.time() * 1000)
 
     plan = [
-        (alice, BUY, price * 10200 // 10000, "Alice BUY"),
-        (bob, SELL, price * 9800 // 10000, "Bob SELL"),
+        (alice, BUY, price * 10200 // 10000, f"{buyer_name} BUY"),
+        (bob, SELL, price * 9800 // 10000, f"{seller_name} SELL"),
     ]
     for index, (account, side, limit, label) in enumerate(plan):
         struct = {
@@ -185,11 +196,27 @@ def main() -> int:
 
     # ─────────────────── step 3: batch ───────────────────
     print("\n\033[1mSTEP 3 — batch (operator gated)\033[0m")
-    checks.equal("batch/run rejects a missing token",
-                 requests.post(f"{engine}/batch/run", json={}, timeout=30).status_code, 401)
-    checks.equal("batch/run rejects a wrong token",
-                 requests.post(f"{engine}/batch/run", json={},
-                               headers={"X-Umbra-Operator-Token": "wrong"}, timeout=30).status_code, 401)
+    via_proxy = "/api/engine" in engine
+    if via_proxy:
+        # The Next.js proxy injects the operator token server-side so it never reaches the browser.
+        # That deliberately makes /batch/run callable without a token through the proxy, so assert
+        # the gate against the engine itself instead.
+        direct = env.get("ENGINE_DIRECT_URL", "").rstrip("/")
+        if direct:
+            checks.equal("engine rejects a missing operator token",
+                         requests.post(f"{direct}/batch/run", json={}, timeout=30).status_code, 401)
+            checks.equal("engine rejects a wrong operator token",
+                         requests.post(f"{direct}/batch/run", json={},
+                                       headers={"X-Umbra-Operator-Token": "wrong"}, timeout=30).status_code, 401)
+        else:
+            print("  \033[33m•\033[0m operator-token gate not asserted here: the proxy supplies the "
+                  "token server-side. Set ENGINE_DIRECT_URL to assert it against the engine.")
+    else:
+        checks.equal("batch/run rejects a missing token",
+                     requests.post(f"{engine}/batch/run", json={}, timeout=30).status_code, 401)
+        checks.equal("batch/run rejects a wrong token",
+                     requests.post(f"{engine}/batch/run", json={},
+                                   headers={"X-Umbra-Operator-Token": "wrong"}, timeout=30).status_code, 401)
 
     response = requests.post(
         f"{engine}/batch/run", json={},
@@ -231,8 +258,8 @@ def main() -> int:
                  deviation <= max_bps, f"{deviation} bps > {max_bps}")
     print(f"  cleared ${clearing / 1e6:.6f} vs oracle ${oracle / 1e6:.6f}  ({deviation} bps of {max_bps})")
 
-    checks.equal("fill buyer is Alice", fill["buyer"], alice.address)
-    checks.equal("fill seller is Bob", fill["seller"], bob.address)
+    checks.equal(f"fill buyer is {buyer_name}", fill["buyer"], alice.address)
+    checks.equal(f"fill seller is {seller_name}", fill["seller"], bob.address)
     checks.equal("fill amountBase", fill["amountBase"], base_amount)
     # The formula parity check, evaluated by deployed bytecode rather than by our Python.
     checks.equal("fill amountQuote equals vault.quoteFor",
@@ -240,16 +267,16 @@ def main() -> int:
 
     amount_quote = fill["amountQuote"]
     checks.equal("lastBatchId advanced", vault.functions.lastBatchId().call(), snapshot["last_batch_id"] + 1)
-    checks.equal("Alice base +amountBase",
+    checks.equal(f"{buyer_name} base +amountBase",
                  vault.functions.balanceOf(alice.address, fxrp.address).call(),
                  snapshot["alice_base"] + base_amount)
-    checks.equal("Alice quote -amountQuote",
+    checks.equal(f"{buyer_name} quote -amountQuote",
                  vault.functions.balanceOf(alice.address, usdt0.address).call(),
                  snapshot["alice_quote"] - amount_quote)
-    checks.equal("Bob base -amountBase",
+    checks.equal(f"{seller_name} base -amountBase",
                  vault.functions.balanceOf(bob.address, fxrp.address).call(),
                  snapshot["bob_base"] - base_amount)
-    checks.equal("Bob quote +amountQuote",
+    checks.equal(f"{seller_name} quote +amountQuote",
                  vault.functions.balanceOf(bob.address, usdt0.address).call(),
                  snapshot["bob_quote"] + amount_quote)
 
@@ -269,8 +296,8 @@ def main() -> int:
         print("\n\033[1mSTEP 5 — withdrawal is ungated\033[0m")
         wallet_before = fxrp.functions.balanceOf(alice.address).call()
         send_tx(w3, alice, vault.functions.withdraw(fxrp.address, base_amount).build_transaction(
-            {"from": alice.address}), "Alice withdraw")
-        checks.equal("Alice received her FXRP",
+            {"from": alice.address}), f"{buyer_name} withdraw")
+        checks.equal(f"{buyer_name} received the FXRP",
                      fxrp.functions.balanceOf(alice.address).call(), wallet_before + base_amount)
 
     print(f"\n\033[1mSETTLEMENT:\033[0m {EXPLORER}/tx/{batch['tx_hash']}")

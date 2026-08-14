@@ -5,6 +5,8 @@ FTSOv2 fair price and settled on Flare — so large trades can't be front-run.**
 
 Built for the Flare Summer Signal hackathon. Coston2 testnet only.
 
+**Live app:** https://umbra-l4kzgy5ym-oojaes-projects.vercel.app
+
 ## The problem
 
 On a public DEX, a large order is visible to everyone the moment it hits the mempool. The whale
@@ -104,6 +106,10 @@ a bogus signer registered, and while the oracle reverts) and once on real chain
   side annotation, but the aggregate is a real (small) leak rather than a perfect one.
 - The Confidential Space VM currently runs the `confidential-space-debug` image family, so its
   attestation reports `dbgstat: enabled`.
+- The web app proxies the engine through its own server so the browser never needs CORS and the
+  operator token never reaches the client. A side effect is that anyone with the URL can trigger a
+  batch; the worst outcome is an empty batch or a "already running" response, so it is left open
+  rather than bolted shut with auth the guide explicitly scopes out.
 - Rounding is floor, so a fill can differ by at most one quote unit (~$0.000001) from an exact
   computation. This shifts value between counterparties, never into or out of the vault: the same
   integer is debited from the buyer and credited to the seller.

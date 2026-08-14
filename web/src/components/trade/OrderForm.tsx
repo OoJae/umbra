@@ -51,6 +51,18 @@ export function OrderForm({ onSubmitted }: { onSubmitted: (r: SubmitResult) => v
   );
   const insufficient = short > 0n;
 
+  // Eligibility, exactly as the matcher applies it: buys need limit >= mid, sells need limit <= mid.
+  const crosses =
+    price1e6 && limitPrice1e6 > 0n
+      ? side === 0
+        ? limitPrice1e6 >= price1e6
+        : limitPrice1e6 <= price1e6
+      : undefined;
+  const limitVsMidBps =
+    price1e6 && price1e6 > 0n && limitPrice1e6 > 0n
+      ? ((limitPrice1e6 - price1e6) * 10_000n) / price1e6
+      : 0n;
+
   const busy = phase === 'signing' || phase === 'sealing' || phase === 'posting';
 
   return (
@@ -98,13 +110,30 @@ export function OrderForm({ onSubmitted }: { onSubmitted: (r: SubmitResult) => v
           value={side === 0 ? `${fmt6(required)} USDT0` : `${fmt6(amountBase)} FXRP`}
           hint={side === 0 ? 'reserved at your limit price' : 'held until the batch clears'}
         />
+        {/*
+          The ±50bps band constrains the CLEARING price against the oracle — it is a guard on the
+          enclave, not on your limit. What matters to a trader is whether their limit crosses the
+          mid, which is the eligibility rule the matcher actually applies.
+        */}
         <Stat
-          label="Inside the FTSOv2 band"
-          value={band.ok === undefined ? '—' : band.ok ? 'yes' : 'no'}
-          hint={band.deviationBps !== undefined ? `${band.deviationBps} bps from the mid` : undefined}
-          tone={band.ok ? 'ok' : 'warn'}
+          label="Crosses at the current mid"
+          value={crosses === undefined ? '—' : crosses ? 'yes' : 'no'}
+          hint={
+            price1e6 && limitPrice1e6
+              ? `your limit is ${limitVsMidBps >= 0n ? '+' : ''}${limitVsMidBps} bps vs the mid`
+              : undefined
+          }
+          tone={crosses ? 'ok' : 'warn'}
         />
       </div>
+
+      {band.ok === false && (
+        <p className="muted mb-3 text-xs">
+          Note: the vault only accepts a clearing price within {band.deviationBps !== undefined ? '±50' : '±50'} bps
+          of its own FTSOv2 read. That check applies to the price the enclave clears at, not to your
+          limit — a wide limit simply means your order crosses comfortably.
+        </p>
+      )}
 
       {insufficient && (
         <p className="warn mb-3 text-xs">
