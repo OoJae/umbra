@@ -150,11 +150,14 @@ scripts/     end-to-end demo runner
 cp .env.example .env          # fill in three throwaway testnet keys
 # fund them at https://faucet.flare.network/coston2 (C2FLR + FXRP + USDT0)
 
-cd contracts && forge test    # 228 tests across 6/6, 18/6 and 6/18 decimal pairings
+# Solidity dependencies come from npm (the Flare periphery is published there), and
+# contracts/node_modules is gitignored — so install them before the first build.
+cd contracts && npm install
+forge test                    # 239 tests across 6/6, 18/6 and 6/18 decimal pairings
 set -a; . ../.env; set +a
 forge script script/Deploy.s.sol:Deploy --rpc-url $COSTON2_RPC_URL --broadcast --slow
 
-cd ../engine && uv run uvicorn app.main:app --port 8080   # or point at the live enclave
+cd ../engine && uv sync && uv run uvicorn app.main:app --port 8080   # or point at the live enclave
 ```
 
 ### Prove it end to end
@@ -197,6 +200,13 @@ Everything in this repository was written from scratch during the event — firs
 **2026-08-13 21:36 UTC**, on an empty repository. Contracts, the TEE engine, the attestation
 plumbing, the frontend and the test suites are all new work. 239 Foundry tests, 54 engine unit
 tests, and a 41-assertion end-to-end rehearsal against live Coston2.
+
+## More
+
+- [docs/submission.md](docs/submission.md) — the full write-up
+- [docs/addresses.md](docs/addresses.md) — every address with the command that verified it
+- [docs/video-shot-list.md](docs/video-shot-list.md) — demo walkthrough
+- [PROGRESS.md](PROGRESS.md) — the build log, including every decision and why
 
 ## License
 
