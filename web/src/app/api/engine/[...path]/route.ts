@@ -25,8 +25,19 @@ export const maxDuration = 60;
 const ENGINE_URL = (process.env.ENGINE_URL ?? '').replace(/\/+$/, '');
 const OPERATOR_TOKEN = process.env.OPERATOR_TOKEN ?? '';
 
-const GET_ALLOW = [/^healthz$/, /^info$/, /^attestation$/, /^orderbook\/public$/, /^batches\/\d+$/];
+const GET_ALLOW = [/^healthz$/, /^info$/, /^attestation$/, /^orderbook\/public$/, /^batches\/\d+$/, /^orders\/[0-9a-f]{32}$/];
 const POST_ALLOW = [/^orders$/, /^batch\/run$/];
+
+/**
+ * batch/run is the one operator-authenticated engine route this proxy deliberately exposes, because
+ * the demo needs a public "Trigger batch" button. That means the operator token protects the engine
+ * from direct callers but not from anyone who finds this URL — so the throttle below is the only
+ * thing standing between a stranger and unbounded batch triggering during a week of unattended
+ * judging. It is best-effort by nature: serverless instances do not share this counter, so treat it
+ * as a brake on casual abuse rather than a security boundary.
+ */
+const BATCH_COOLDOWN_MS = 20_000;
+let lastBatchRun = 0;
 
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
@@ -50,6 +61,14 @@ async function forward(req: NextRequest, segments: string[], method: 'GET' | 'PO
     body = await req.text();
     if (path === 'batch/run') {
       if (!OPERATOR_TOKEN) return json({ code: 'operator_token_unset' }, 500);
+      const since = Date.now() - lastBatchRun;
+      if (since < BATCH_COOLDOWN_MS) {
+        return json(
+          { code: 'batch_cooldown', detail: { retry_after_s: Math.ceil((BATCH_COOLDOWN_MS - since) / 1000) } },
+          429,
+        );
+      }
+      lastBatchRun = Date.now();
       headers['X-Umbra-Operator-Token'] = OPERATOR_TOKEN;
     }
   }

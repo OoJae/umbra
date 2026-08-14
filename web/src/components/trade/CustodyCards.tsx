@@ -6,7 +6,7 @@ import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagm
 
 import { Card, Stat } from '@/components/ui';
 import { useInfo } from '@/hooks/useEngine';
-import { useVaultBalances, useWalletTokens } from '@/hooks/useVault';
+import { useVaultBalances, useVaultTokens, useWalletTokens } from '@/hooks/useVault';
 import { vault } from '@/lib/contracts';
 import { fmt6, parse6 } from '@/lib/format';
 
@@ -82,7 +82,7 @@ export function DepositCard({ prefill }: { prefill?: { token: 'base' | 'quote'; 
 }
 
 export function WithdrawCard() {
-  const info = useInfo();
+  // Deliberately does not call useInfo(): nothing on this card may depend on the engine.
   const { address } = useAccount();
   const { baseBal, quoteBal } = useVaultBalances(address);
   const [which, setWhich] = useState<'base' | 'quote'>('base');
@@ -90,7 +90,9 @@ export function WithdrawCard() {
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const receipt = useWaitForTransactionReceipt({ hash });
 
-  const tokenAddress = which === 'base' ? info.data?.base_token : info.data?.quote_token;
+  // From the vault, never from the engine: a dead enclave must not be able to disable this button.
+  const tokens = useVaultTokens();
+  const tokenAddress = which === 'base' ? tokens.base : tokens.quote;
   const balance = which === 'base' ? baseBal : quoteBal;
 
   return (

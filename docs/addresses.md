@@ -140,7 +140,7 @@ the enclave**. The attestation is a real Google-signed vTPM token, not our simul
 | `swname` | `CONFIDENTIAL_SPACE` |
 | `secboot` | `true` |
 | `dbgstat` | **`disabled-since-boot`** (production `confidential-space` image family) |
-| `eat_nonce` | `0xb3bd51793eb5461c79f9e156286831c744b9b1d5763d904ca4979f0d0a3eed22` |
+| `eat_nonce` | `0x2ba3bd6b8cb59dfacdb0b5392d6ef7dff9f3aac29730b926ccbed6f4413a804c` |
 | `submods.container.image_digest` | `sha256:1c5af92de02a7886b0d5be8e04474977888ab7997f5f0c0afeccd3a1f00a6c85` |
 
 Two independent bindings make this meaningful rather than decorative. The `eat_nonce` equals

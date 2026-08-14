@@ -531,10 +531,8 @@ def run_batch(body: BatchRunRequest | None = None) -> BatchResponse:
         record.status = "failed"
         record.error_code = record.error_code or "internal_error"
         record.error_detail = record.error_detail or str(exc)
-        with state.lock:
-            state.ledger.restore(ledger_snapshot)
-            for rec in drained:
-                state.book[rec.order_id] = rec
+        # The rollback itself lives in the finally below, which restores on every non-settled
+        # status. Doing it here as well would be the only place it could drift out of sync.
         log_event(log, "batch.failed", level=logging.ERROR, code=record.error_code,
                   reason=record.error_detail[:200])
     finally:
@@ -553,8 +551,17 @@ def run_batch(body: BatchRunRequest | None = None) -> BatchResponse:
                     else:
                         outcome = "unmatched"
                     state.record_outcome(rec.order_id, outcome, record.batch_id)
-            elif record.status in ("no_match", "matched_dry_run"):
-                # Nothing moved on-chain; put the book back so orders survive to the next attempt.
+            else:
+                # Every non-settled outcome means nothing moved on-chain, so the book and the
+                # escrow ledger must both go back exactly as they were.
+                #
+                # This is deliberately `else` and not a list of statuses. _execute_batch signals
+                # its two hard failures by RETURNING a record with status="failed" rather than
+                # raising — insufficient_escrow after the retry limit, and tx_reverted when a
+                # simulated batch still reverts on-chain. Enumerating ("no_match",
+                # "matched_dry_run") missed both, so a reverted settlement silently destroyed every
+                # drained order and left its escrow reserved forever. Funds stayed withdrawable,
+                # but the engine's ledger was corrupt until restart.
                 state.ledger.restore(ledger_snapshot)
                 for rec in drained:
                     state.book[rec.order_id] = rec

@@ -15,6 +15,31 @@ type Badge = { label: string; tone: 'ok' | 'warn' | 'bad'; detail: string };
  * TDX VM whose token fetch failed emits a simulated token with fallback_from set — and showing
  * that as REAL would be a lie, while showing it as SIMULATED would hide that the hardware is real.
  */
+/**
+ * Whether the attestation token is still inside its validity window — and why lapsing is expected
+ * rather than a fault.
+ *
+ * The token is fetched once at enclave boot and deliberately never refreshed, because
+ * TeeRegistry.attestationHash anchors keccak256 of that exact string; re-fetching would mint a
+ * token with a fresh iat/exp and the on-chain anchor would stop matching. So the token lapses about
+ * an hour after boot and stays lapsed. What it attests is a point in time: at boot, this image
+ * digest was running on this hardware and committed to this key and this vault. The anchor is what
+ * carries that forward, not the validity window.
+ */
+function TokenValidity({ exp }: { exp?: number }) {
+  if (!exp) return <span className="muted">—</span>;
+  const ageH = (Date.now() / 1000 - exp) / 3600;
+  const lapsed = ageH > 0;
+  return (
+    <span className="flex items-center justify-end gap-2">
+      <span className="mono">{new Date(exp * 1000).toISOString().replace('T', ' ').slice(0, 19)}Z</span>
+      <span className={lapsed ? 'muted' : 'ok'}>
+        {lapsed ? `lapsed ${ageH < 1 ? '<1' : Math.floor(ageH)}h ago — expected` : 'current'}
+      </span>
+    </span>
+  );
+}
+
 function classify(alg?: string, payload?: Record<string, unknown>, status?: string): Badge {
   const hwmodel = payload?.hwmodel as string | undefined;
   const secboot = payload?.secboot as boolean | undefined;
@@ -79,7 +104,20 @@ export default function VerifyPage() {
             </span>
           }
         />
-        <Row k="expired" v={decoded?.expired ? 'yes' : 'no'} />
+        {/*
+          Computed here from the token's own exp claim, not read from the engine's `expired` field.
+          That field is evaluated once when the token is fetched at boot and then frozen alongside
+          it, so it reports "false" forever and the page was asserting a token was current hours
+          after it lapsed.
+        */}
+        <Row k="token validity" v={<TokenValidity exp={payload?.exp as number | undefined} />} />
+        <p className="muted mt-3 text-xs">
+          The token is captured once at enclave boot and never refreshed, because the registry
+          anchors the keccak of this exact string — re-fetching would mint a new token and break the
+          anchor below. So it lapses about an hour after boot by design. It attests a moment: at
+          boot, this image digest was running on this hardware, committed to this key and this vault.
+          The on-chain anchor is what carries that forward.
+        </p>
       </Card>
 
       <Card

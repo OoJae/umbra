@@ -4,7 +4,6 @@ import { useAccount, useReadContract, useReadContracts } from 'wagmi';
 import { erc20Abi, type Address } from 'viem';
 
 import { registry, vault } from '@/lib/contracts';
-import { useInfo } from './useEngine';
 
 /** Live FTSOv2 XRP/USD, read through the vault's own normalization path. */
 export function usePrice(pollMs = 5000) {
@@ -54,12 +53,35 @@ export function useVaultBalances(who?: Address) {
   return { ...q, baseBal, quoteBal };
 }
 
+/**
+ * The pair, read from the vault itself rather than from the engine's /info.
+ *
+ * This matters for more than tidiness. Custody is the one thing this project promises is never
+ * gated on the enclave, and the withdraw path needs a token address to call withdrawAll. Sourcing
+ * that address from /info meant a dead engine disabled the Withdraw button — gating custody on
+ * exactly the component the trust model says it does not depend on. The vault is the authority on
+ * its own pair, so ask it.
+ */
+export function useVaultTokens() {
+  const q = useReadContracts({
+    contracts: [
+      { ...vault, functionName: 'baseToken' },
+      { ...vault, functionName: 'quoteToken' },
+    ],
+    query: { staleTime: Infinity },
+  });
+  const [base, quote] = (q.data ?? []).map((r) =>
+    r?.status === 'success' ? (r.result as Address) : undefined,
+  );
+  return { ...q, base, quote };
+}
+
 /** Wallet (not vault) token balances plus allowances, for the deposit card. */
 export function useWalletTokens() {
   const { address } = useAccount();
-  const info = useInfo();
-  const base = info.data?.base_token ?? undefined;
-  const quote = info.data?.quote_token ?? undefined;
+  const tokens = useVaultTokens();
+  const base = tokens.base;
+  const quote = tokens.quote;
 
   const q = useReadContracts({
     contracts: [

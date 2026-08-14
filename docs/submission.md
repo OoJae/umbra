@@ -73,7 +73,10 @@ leaves the enclave, and whose pricing is checked by a contract it does not contr
 
 ## Demo
 
-- **Live app:** https://umbra-beta.vercel.app
+- **Live app:** https://umbra-beta.vercel.app — the Verify page, Dark Book and settled batches are
+  read-only and work in any browser. **Placing an order needs a desktop browser with MetaMask** on
+  Coston2 (chain 114); the wallet config uses the injected connector only, with no WalletConnect QR
+  path, so mobile is read-only.
 - **Video:** _(link to be added)_
 - **Run it yourself:**
   ```bash
@@ -108,9 +111,15 @@ Three native components, with privacy load-bearing rather than cosmetic:
 Users trust Intel TDX and Google Confidential Space to run only the attested image, FTSOv2 for
 fair pricing, and the vault for custody.
 
-**The operator cannot read orders** — they are sealed to an X25519 key that only exists inside the
-enclave — **and cannot settle off-market**, because the band is enforced on-chain by a contract
-they do not control at settlement time.
+**The operator cannot settle off-market**, because the band is enforced on-chain by a contract they
+do not control at settlement time. That one is unconditional — it holds even against an operator who
+replaces the entire engine.
+
+**Orders are sealed to an X25519 key that only exists inside the enclave**, so a passive operator
+cannot read them. Stated precisely, because this is weaker than it first looks: the attestation
+nonce commits to the enclave's *signing* key, not to its *encryption* key, so an operator willing to
+serve a substituted public key could read orders. See Known limits — we would rather state the
+boundary than let a judge find it.
 
 Being precise about what the operator *can* do, since this is where write-ups usually hand-wave:
 the registry owner can rotate the TEE signer, because enclaves are ephemeral and every boot mints a
@@ -134,7 +143,7 @@ inside the hackathon window.
   batch-id replay protection, ungated withdrawals. **239 Foundry tests** across three decimal
   pairings.
 - The TEE matching engine — sealed-box decryption, in-enclave EIP-712 verification, a uniform-price
-  batch auction with pro-rata allocation, and settlement submission. **54 unit tests**, including a
+  batch auction with pro-rata allocation, and settlement submission. **67 unit tests**, including a
   cross-language EIP-712 fixture that locks Solidity and Python to a byte-identical signature.
 - Confidential Space deployment, attestation fetching, and on-chain anchoring.
 - The Next.js frontend, including a Verify page that recomputes the attestation hash in the browser
@@ -205,6 +214,22 @@ settlement is real on-chain FAsset movement, not a signal.
   verify. JWKS verification is roadmap.
 - No MEV protection between the vault and external DEXes — Umbra protects the matching process, not
   what you do with the proceeds.
+- **The order-encryption key is not covered by the attestation, so "the operator cannot read
+  orders" holds against a passive operator, not an actively malicious one.** The `eat_nonce` commits
+  to the enclave's *Ethereum* signing address and the vault, which is what makes settlement
+  trustworthy. It does not commit to the enclave's X25519 *order-encryption* key. The browser seals
+  to whatever public key `/info` returns, and that response arrives over plain HTTP from a raw IP —
+  so an operator willing to tamper could serve their own X25519 key, decrypt everything, and the
+  attestation and the on-chain anchor would both still verify, because neither ever sees that key.
+  Closing this properly means adding the X25519 key to the nonce preimage, which changes the enclave
+  image and forces a re-anchor; it is the first thing we would fix past the deadline. Until then the
+  honest claim is narrower than "cannot": the operator cannot *quietly* read orders, because serving
+  a substituted key is an active, detectable act rather than a passive capability.
+- **The frontend is inside the trust boundary, whatever the attestation says.** Order plaintext
+  exists in the browser before it is sealed, so whoever serves the JavaScript can read it. No
+  attestation claim, on-chain anchor, or Verify-page check can see that. The one verification path
+  that does not depend on us is the shell command in this document: fetch the raw token and keccak it
+  yourself, then compare against `TeeRegistry.attestationHash()` on-chain.
 - **Escrow is a free option.** Because withdrawals are deliberately ungated, a trader can deposit,
   submit a sealed order, watch FTSOv2 move, and withdraw before the batch settles — at zero cost.
   The severe version of this is already handled: the engine re-reads live balances at a pinned block

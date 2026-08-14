@@ -116,11 +116,19 @@ FTSOv2 itself and refuses anything outside the band.
 Users trust Intel TDX / Google Confidential Space to run only the attested image, FTSOv2 for fair
 pricing, and the vault contract for custody.
 
-**The operator is not trusted to read orders** — they are sealed to a key that only exists inside the
-enclave — **and cannot settle off-market**, because the price band is enforced on-chain by a contract
-the operator does not control at settlement time.
+**The operator cannot settle off-market** — the price band is enforced on-chain by a contract the
+operator does not control at settlement time. That guarantee is unconditional: it holds even if the
+entire engine is replaced with malicious code.
 
-Being precise about what the operator *can* do, since this is where hand-waving usually happens:
+**Orders are sealed to a key that only exists inside the enclave**, so a passive operator cannot read
+them. Being precise about the limit of that, because it is weaker than it sounds: the attestation
+nonce commits to the enclave's *signing* key, not to its *order-encryption* key, and the browser
+seals to whatever key `/info` returns. An operator willing to serve a substituted public key could
+therefore read orders. That is an active, detectable act rather than a passive capability — but
+"cannot read orders" would be an overstatement, so we do not make it. Binding the encryption key into
+the attestation nonce is the first thing we would fix past the deadline.
+
+Being precise about what else the operator *can* do, since this is where hand-waving usually happens:
 the registry owner can rotate the TEE signer, because enclaves are ephemeral and every boot mints a
 fresh key. That power is real. What bounds it is that **every rotation emits a public event**, so a
 swap is permanently visible on-chain, and the price band still applies to whatever key is registered.
@@ -148,9 +156,27 @@ a bogus signer registered, and while the oracle reverts) and once on real chain
   in the book the count discloses that order's side. The individual blobs stay opaque and carry no
   side annotation, but the aggregate is a real (small) leak rather than a perfect one.
 - The web app proxies the engine through its own server so the browser never needs CORS and the
-  operator token never reaches the client. A side effect is that anyone with the URL can trigger a
-  batch; the worst outcome is an empty batch or a "already running" response, so it is left open
-  rather than bolted shut with auth the guide explicitly scopes out.
+  operator token never reaches the client. The demo's "Trigger batch" button is public, which means
+  **anyone with the URL can trigger a batch** — the operator token protects the engine from direct
+  callers, not from anyone who finds the app. The consequence is sharper than "an empty batch": since
+  the clearing price is the oracle mid, whoever chooses *when* a batch runs chooses which oracle tick
+  resting orders execute against. There is a 20-second server-side cooldown on the trigger, which is
+  a brake on casual abuse rather than a security boundary (serverless instances do not share it).
+  Gating it properly means an auth story the build guide scopes out.
+- **The order-encryption key is not covered by the attestation.** The nonce commits to the enclave's
+  signing key and the vault, not to its X25519 encryption key, and the browser seals to whatever key
+  `/info` returns over plain HTTP. An operator willing to substitute that key could read orders —
+  an active and detectable act, but a real gap. See Trust model.
+- **The browser is inside the trust boundary.** Order plaintext exists client-side before it is
+  sealed, so whoever serves the JavaScript can read it, and no attestation or on-chain check can see
+  that. The verification that does *not* depend on us is fetching the raw token and keccak-ing it
+  yourself against `TeeRegistry.attestationHash()`.
+- **The attestation token is always lapsed, by design.** It is captured once at enclave boot and
+  never refreshed, because the registry anchors the keccak of that exact string — refreshing would
+  break the anchor. It attests a moment in time; the on-chain anchor is what carries it forward.
+- **Interactive trading needs a desktop browser with an injected wallet** (MetaMask or similar). The
+  wallet config uses only the injected connector, with no WalletConnect QR path, so on mobile you can
+  read everything — Verify, the Dark Book, settlements — but cannot deposit, order or withdraw.
 - Rounding is floor, so a fill can differ by at most one quote unit (~$0.000001) from an exact
   computation. This shifts value between counterparties, never into or out of the vault: the same
   integer is debited from the buyer and credited to the seller.
@@ -225,7 +251,7 @@ all 41 checks passed
 
 Everything in this repository was written from scratch during the event — first commit
 **2026-08-13 21:36 UTC**, on an empty repository. Contracts, the TEE engine, the attestation
-plumbing, the frontend and the test suites are all new work. 239 Foundry tests, 54 engine unit
+plumbing, the frontend and the test suites are all new work. 239 Foundry tests, 67 engine unit
 tests, and a 41-assertion end-to-end rehearsal against live Coston2.
 
 ## More
