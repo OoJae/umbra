@@ -1,5 +1,11 @@
 # pnpm 11 requires native build-script approval to live here rather than in package.json.
-# unrs-resolver is a native dependency of eslint-config-next; without this, every
-# `pnpm install` / `pnpm build` aborts with ERR_PNPM_IGNORED_BUILDS.
+# Without this, every `pnpm install` / `pnpm build` aborts with ERR_PNPM_IGNORED_BUILDS.
+#
+# unrs-resolver  — native dependency of eslint-config-next
+# keccak         — native hashing used by the wagmi/viem dependency tree
+# bufferutil / utf-8-validate — optional ws speedups; false is fine, ws falls back to JS
 allowBuilds:
   unrs-resolver: true
+  keccak: true
+  bufferutil: false
+  utf-8-validate: false
