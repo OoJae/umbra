@@ -37,3 +37,12 @@ docs/claude-code-master-prompt.md
 # Playwright / design-review screenshots
 *.png
 .playwright-mcp/
+
+# Demo film: 86MB of captured plates and staged assets stay local.
+# The text artifacts (script, brief, storyboard, frame spec) are tracked.
+demo/shots/
+demo/videos/*/assets/
+demo/videos/*/capture/
+demo/videos/*/renders/
+demo/videos/*/snapshots/
+demo/videos/*/node_modules/
