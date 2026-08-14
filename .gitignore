@@ -27,3 +27,9 @@ engine/.venv/
 
 # playwright-mcp scratch
 .playwright-mcp/
+
+# Internal planning artifacts. Kept out of the public repo: the strategy doc analyses the
+# judges by name and reasons about the strength of the competing field, which has no place in a
+# repository we invite those judges to read.
+docs/flare-summer-signal-win-strategy.md
+docs/claude-code-master-prompt.md

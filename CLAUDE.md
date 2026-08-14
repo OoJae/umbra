@@ -4,10 +4,9 @@
 Umbra: a confidential sealed-bid dark pool for FXRP on Flare's Coston2 testnet.
 Hackathon: Flare Summer Signal (DoraHacks). HARD DEADLINE: Aug 14, 2026, 20:59 — treat every hour as scarce.
 The full specification is docs/umbra-build-guide.md — it is the single source of truth for
-architecture, phases, acceptance criteria, scope, and pivot rules. Strategy context:
-docs/flare-summer-signal-win-strategy.md. If code and the build guide conflict, the guide wins;
-if the guide and live Flare docs conflict, live docs (https://dev.flare.network) win — then
-update docs/addresses.md with what you verified.
+architecture, phases, acceptance criteria, scope, and pivot rules. If code and the build guide
+conflict, the guide wins; if the guide and live Flare docs conflict, live docs
+(https://dev.flare.network) win — then update docs/addresses.md with what you verified.
 
 ## Non-negotiable guardrails
 - TESTNET ONLY (Coston2, chain 114). Never touch mainnet, never handle real funds.
