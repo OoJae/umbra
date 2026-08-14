@@ -423,3 +423,103 @@ defaults to `confidential-space-debug` and a future relaunch would have silently
    deletes and recreates the VM and mints a new signer requiring `scripts/register_tee.sh` to
    re-anchor. That is a destructive action against a currently-healthy attested demo, so it was left
    for the operator to decide rather than done unattended.
+
+---
+
+## Phase 7 — adversarial audit (2026-08-14, ~04:00–09:00 UTC)
+
+Nine parallel auditors (contracts, engine, crypto, TEE, economics, web, ops, docs-vs-code, tests),
+each finding then attacked by an independent skeptic instructed to refute by default. **59 findings
+survived, 32 were killed as false alarms.** Every finding acted on below was re-verified by hand
+first; two of the auditors' own claims turned out to be wrong and were dropped.
+
+**Contracts came out clean.** Nothing in the audit required touching `UmbraVault.sol`, which matters
+because a redeploy would change the EIP-712 `verifyingContract` *and* invalidate the attestation
+`eat_nonce`, forcing a full enclave relaunch.
+
+### The finding that outranked every technical one
+
+`docs/flare-summer-signal-win-strategy.md` was tracked, pushed, and anonymously fetchable from the
+public repo. It analysed the hackathon judges **by name** and reasoned about the competing field:
+"fewer and weaker submissions", "smaller, weaker field + judge tailwind", a scoring row for "judge
+strategic motivation". Both named judges are the people scoring this submission, and the README
+invites them into the repo. `CLAUDE.md` pointed at the file. Removed along with
+`docs/claude-code-master-prompt.md`, gitignored, kept outside the tree. `docs/umbra-build-guide.md`
+stays — it is the engineering spec and belongs there.
+
+Nine auditors looking at code missed this entirely; the completeness critic found it. Worth
+remembering that the highest-severity issue was not a bug.
+
+### Real bugs fixed
+
+- **A failed batch destroyed the order book and poisoned the escrow ledger.** `_execute_batch`
+  signals its two hard failures by *returning* `status="failed"` rather than raising —
+  `insufficient_escrow` after the retry limit, `tx_reverted` when a simulated batch still reverts.
+  The rollback enumerated `("no_match", "matched_dry_run")`, matching neither, so both fell through
+  every branch: book never restored, reservations held forever. Funds stayed withdrawable, but the
+  ledger was corrupt until restart. Found independently by two auditors. Now a single restore path
+  covers every non-settled status, with 6 regression tests **verified to fail against the old logic**.
+- **The withdraw UI was gated on engine liveness** — `WithdrawCard` took its token address from the
+  engine's `/info`, so a dead enclave disabled the button, on a card whose subtitle reads "Never
+  gated by the TEE, the operator, or a pause." Reads `baseToken`/`quoteToken` from the vault now;
+  `useVault.ts` no longer imports the engine at all.
+- **The Verify page asserted "expired: no" about a token that had lapsed six hours earlier.** The
+  engine's `expired` field is evaluated once at fetch and frozen with the token. Now computed
+  client-side from the `exp` claim — which also fits the page's own premise — and explains why
+  lapsing is *expected*: the registry anchors the keccak of that exact string, so refreshing the
+  token would break the anchor.
+- **Eligibility was being reported as a fill.** `matched_order_ids` came from the matcher's
+  `eligible_*_ids`, so an order that crossed the mid but received nothing (pro-rata floor, fill cap,
+  or self-trade exclusion) was told "matched". The matcher now reports `filled_order_ids`.
+- **Order deadlines were never re-checked at match time**, so an order could rest past the deadline
+  its owner signed and still settle. Dropped at match time now, reported as `expired`.
+- **`deploy-tee.sh logs` returned zero bytes** — wrong label and wrong payload field, and `gcloud
+  logging read` defaults to one day. The only window into a running enclave was broken precisely
+  when it would be needed. Returns 80 lines now.
+- **`e2e_demo.py` demanded an empty order book**, so a judge who left an order resting would fail a
+  check unrelated to the flow. Baselines and asserts on the delta.
+- **20s cooldown on the proxied batch trigger.** Verified live that `POST /api/engine/batch/run`
+  returned 200 unauthenticated while the engine returns 401 without a token — the operator token
+  protects the engine from direct callers, not from anyone who finds the app. A brake, not a
+  boundary; serverless instances don't share the counter.
+
+### Overclaims corrected (the category with the highest judge-risk)
+
+- `docs/addresses.md` published an `eat_nonce` that **its own stated derivation disproves**. The doc
+  prints `keccak256(bytes20(teeAddress) ‖ bytes20(vaultAddress))` directly beneath it, so one command
+  refutes it. Computed independently and corrected to the live value.
+- "The running image is a public hash anyone can diff against the source" — the digest is public, but
+  the Artifact Registry repo is `STANDARD_REPOSITORY`, not world-readable, so nobody can pull and
+  diff it. Making the registry public is a small, real verifiability win and is left as an operator
+  decision.
+- "The operator cannot read orders" was unconditional. The attestation nonce commits to the enclave's
+  *signing* key, not its X25519 *encryption* key, and the browser seals to whatever `/info` returns
+  over plain HTTP — so a substituted key would read everything and the anchor would still verify.
+  Now stated as a bounded claim, with the fix named.
+- Disclosed: the browser holds plaintext before sealing (so whoever serves the JS is inside the trust
+  boundary), the Dark Book's ciphertext-length channel and side-polling, `order_id → trader` reaching
+  Cloud Logging, that the attestation token is always lapsed by design, and that mobile is read-only.
+- README showcased a settlement signed by a **rotated-out** debug-image signer while two other docs
+  cited the current one. All three agree now.
+- Engine test count 54 → 71.
+
+### Deliberately not done
+
+Anything requiring a `UmbraVault` redeploy. Also left alone: padding ciphertexts to a fixed width
+(closes the length channel but needs an enclave relaunch for a magnitude leak), binding the X25519
+key into the attestation nonce (the correct fix, but same cost), and hoisting the `POST /orders`
+balance read out of the lock — that last one is *worse* than the bug it fixes, since it reintroduces
+a TOCTOU on the reservation invariant.
+
+### Open, needing the operator
+
+1. **Record the video.** Still the highest-insurance hour available. Record it *after* any enclave
+   relaunch, or every hash on screen will contradict the docs.
+2. **Select BOTH bounties** on the DoraHacks form — it asks in the plural.
+3. **Decide on the enclave relaunch.** Image `sha256:6538c994…` is built and pushed, carrying the
+   batch-rollback fix, `GET /orders/{order_id}`, the filled-vs-eligible fix, and match-time deadline
+   enforcement. Activating it means `deploy-tee.sh destroy && launch` (with
+   `IMAGE_FAMILY=confidential-space`, now persisted in `.gcp-env` so a relaunch cannot silently
+   regress `dbgstat`) then `scripts/register_tee.sh` to re-anchor. It mints a new signer, so **the
+   doc refresh must be the last step** — otherwise the corrected `eat_nonce` goes stale again, which
+   is the exact finding being fixed.
