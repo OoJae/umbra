@@ -33,3 +33,7 @@ engine/.venv/
 # repository we invite those judges to read.
 docs/flare-summer-signal-win-strategy.md
 docs/claude-code-master-prompt.md
+
+# Playwright / design-review screenshots
+*.png
+.playwright-mcp/
