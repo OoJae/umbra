@@ -81,8 +81,8 @@ allows anonymous reads — no credentials, no Google account:
 
 ```bash
 curl -s http://136.112.118.220:8080/attestation | jq -r .image_digest   # what Google says is running
-crane export us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c994… - \
-  | tar -xO app/matching.py | diff - engine/app/matching.py             # and what is inside it
+crane export us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c99447f578c28a5b583476c50609b3d4086df7dffb8b38a2dd74cef25f92 - \
+  | tar -xO app/app/matching.py | diff - engine/app/matching.py        # and what is inside it
 ```
 
 Google asserts *which* image runs; the public registry lets you see what is *in* that image. The
@@ -232,8 +232,18 @@ forge test                    # 239 tests across 6/6, 18/6 and 6/18 decimal pair
 set -a; . ../.env; set +a
 forge script script/Deploy.s.sol:Deploy --rpc-url $COSTON2_RPC_URL --broadcast --slow
 
-cd ../engine && uv sync && uv run uvicorn app.main:app --port 8080   # or point at the live enclave
+cd ../engine && uv sync
+uv run pytest -q                # 71 tests, ~1s, no network and no keys needed
+uv run uvicorn app.main:app --port 8080   # or just point the frontend at the live enclave
+
+cd ../web && pnpm install && pnpm dev
 ```
+
+**The fastest way to check the claims without any setup:** `cd contracts && npm install && forge
+test` and `cd engine && uv sync && uv run pytest -q`. Neither needs a key, a wallet, or a network —
+between them they cover the settlement band, the decimal maths, replay protection, ungated
+withdrawal, and the cross-language EIP-712 fixture that locks Solidity and Python to a byte-identical
+signature.
 
 ### Prove it end to end
 
@@ -254,7 +264,7 @@ directly.
 ```
 1 — PREFLIGHT      enclave mode: REAL TEE (Intel TDX)   attestation: ok
                    hwmodel=GCP_INTEL_TDX  secboot=True  dbgstat=disabled-since-boot
-5 — ON-CHAIN       cleared $1.010878 vs oracle $1.010878  (0 bps of 50)
+5 — ON-CHAIN       cleared $1.004315 vs oracle $1.004315  (0 bps of 50)
 6 — REPLAY         re-submitting a settled batch reverts with BadBatchId
 all 41 checks passed
 ```
@@ -278,7 +288,7 @@ all 41 checks passed
 ## Built during the hackathon
 
 Everything in this repository was written from scratch during the event — first commit
-**2026-08-13 21:36 UTC**, on an empty repository. Contracts, the TEE engine, the attestation
+**2026-08-13 20:36 UTC**, on an empty repository. Contracts, the TEE engine, the attestation
 plumbing, the frontend and the test suites are all new work. 239 Foundry tests, 71 engine unit
 tests, and a 41-assertion end-to-end rehearsal against live Coston2.
 

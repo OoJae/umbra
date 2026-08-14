@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { ExecutionReceipt } from '@/components/ExecutionReceipt';
 import { Card, Chip, Copy, Row, Stat } from '@/components/ui';
 import { useDarkBook } from '@/hooks/useEngine';
 import { useRunBatch } from '@/hooks/useRunBatch';
 import { useBatchIds, usePrice } from '@/hooks/useVault';
-import { txUrl } from '@/lib/contracts';
+import { addressUrl, txUrl, vault } from '@/lib/contracts';
 import { deviationBps, fmt6, price6, shortHex } from '@/lib/format';
 
 function Elapsed({ from }: { from: number }) {
@@ -74,10 +75,41 @@ export default function SettlementPage() {
         )}
 
         {error && <p className="bad mt-3 text-sm">{error}</p>}
+        {/*
+          A reviewer arriving after someone else has already drained the book would
+          otherwise hit a dead end here — a settled batch discards every order it
+          drained, so the book empties for everyone behind the first person to press
+          this. Point them at the settlements that actually happened instead; those
+          are on-chain and permanent.
+        */}
         {phase === 'empty' && (
-          <p className="warn mt-3 text-sm">
-            Nothing crossed — {batch?.status === 'no_orders' ? 'the book was empty' : 'no orders crossed at the mid'}.
-          </p>
+          <div className="mt-3 space-y-2 text-sm">
+            <p className="warn">
+              Nothing crossed —{' '}
+              {batch?.status === 'no_orders' ? 'the book is empty' : 'no orders crossed at the mid'}.
+            </p>
+            <p className="muted">
+              Orders are discarded once a batch settles, so the book empties behind whoever triggers
+              it first. The settlements themselves are permanent —{' '}
+              <a
+                className="accent"
+                href={addressUrl(vault.address)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                every batch this vault has ever settled is on the explorer
+              </a>
+              {lastBatchId !== undefined ? ` (${lastBatchId.toString()} so far)` : ''}, and{' '}
+              <Link className="accent" href="/verify">
+                the attestation behind them is still live
+              </Link>
+              . To watch one happen, submit an order on the{' '}
+              <Link className="accent" href="/app">
+                Trade
+              </Link>{' '}
+              page and press this again.
+            </p>
+          </div>
         )}
         {/* Belt and braces: the chain is the source of truth for whether a batch
             settled, so never render an empty screen just because the engine's own

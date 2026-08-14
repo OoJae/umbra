@@ -2,6 +2,22 @@
 
 Paste-ready answers for each field. Every address, hash and link below is live on Coston2.
 
+> ## ⚠️ Before pasting — three things only the operator can do
+>
+> **Delete this block once they are done. Everything below it is safe to paste verbatim.**
+>
+> 1. **Upload the film and paste its URL** into the Video field below.
+>    `demo/videos/umbra-demo/renders/video.mp4` — 2m57s, 1920×1080, 45MB.
+>    Upload `renders/umbra-demo.srt` as its caption track too; the film is full of proper nouns and
+>    hashes that are hard to catch by ear.
+> 2. **Select BOTH bounties.** The form asks for "bounti**es**", plural. Bounty 2 (Confidential
+>    Compute) is the primary; Bounty 1 (Interoperable Asset Products) is legitimate too because
+>    settlement is in FXRP. Two independent $4,000 first places for one extra field.
+> 3. **Check the Dark Book has orders resting** before submitting, at
+>    https://umbra-beta.vercel.app/app — a settled batch discards every order it drained, so the book
+>    empties behind whoever triggers it first. `python scripts/seed_orders.py --base-amount 1.5`
+>    (add `--reverse` on alternate runs) puts a fresh pair in.
+
 ---
 
 ## Project name
@@ -74,8 +90,8 @@ things a machine checks **before** the trade rather than a regulator litigates y
   # the digest the enclave attests to, straight from the token
   curl -s http://136.112.118.220:8080/attestation | jq -r .image_digest
   # pull that exact image anonymously and read what is inside it
-  crane export us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c994… - \
-    | tar -xO app/matching.py | diff - engine/app/matching.py
+  crane export us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c99447f578c28a5b583476c50609b3d4086df7dffb8b38a2dd74cef25f92 - \
+    | tar -xO app/app/matching.py | diff - engine/app/matching.py
   ```
 
   That closes the loop most TEE write-ups leave open: Google asserts *which image* is running, and
@@ -96,10 +112,26 @@ leaves the enclave, and whose pricing is checked by a contract it does not contr
 - The Verify page, Dark Book and settled batches are read-only and work in any browser. **Placing an
   order needs a desktop browser with MetaMask** on Coston2 (chain 114); the wallet config uses the
   injected connector only, with no WalletConnect QR path, so mobile is read-only.
-- **Video:** _(link to be added)_
+- **Video:** _(paste the uploaded URL — see the pre-flight block at the top of this file)_
+
+### Reviewing this without a wallet
+
+Most of what makes Umbra checkable needs no wallet, no tokens and no setup:
+
+| Page | What you can verify cold |
+|---|---|
+| [`/verify`](https://umbra-beta.vercel.app/verify) | The live attestation — `GCP_INTEL_TDX`, secure boot, `disabled-since-boot` — and the on-chain anchor showing **✓ MATCH**, hashed in your own browser rather than asked of the engine. |
+| [`/app`](https://umbra-beta.vercel.app/app) | The Dark Book: real sealed ciphertext, byte length and sha256. The only bytes the operator holds. |
+| [`/settlement`](https://umbra-beta.vercel.app/settlement) | Trigger a batch yourself — the button is deliberately public. With a resting order it settles on-chain in front of you. |
+| [`/proof`](https://umbra-beta.vercel.app/proof) | Two shell commands that check us without trusting us: hash the attestation against `TeeRegistry.attestationHash()`, and `crane export` the exact attested image and diff it against this source. |
+
+To place an order you need a desktop browser with MetaMask on **Coston2 (chain 114)** and testnet
+tokens from [the Flare faucet](https://faucet.flare.network/coston2) — it dispenses C2FLR, FXRP and
+USDT0 per address per 24 hours, behind a reCAPTCHA.
+
 - **Run it yourself:**
   ```bash
-  git clone <repo> && cd umbra
+  git clone https://github.com/OoJae/umbra && cd umbra
   cp .env.example .env            # add three throwaway Coston2 keys
   # fund them at https://faucet.flare.network/coston2 (C2FLR + FXRP + USDT0)
   uv run --project engine --with requests python scripts/e2e_demo.py
@@ -155,7 +187,7 @@ in every end-to-end run.
 
 ## What is genuinely new
 
-Everything. First commit **2026-08-13 21:36 UTC** on an empty repository; every later commit is
+Everything. First commit **2026-08-13 20:36 UTC** on an empty repository; every later commit is
 inside the hackathon window.
 
 - `UmbraVault.sol` + `TeeRegistry.sol` — escrow, EIP-712 batch settlement, the FTSOv2 band check,
@@ -182,7 +214,7 @@ inside the hackathon window.
 | Live engine | `http://136.112.118.220:8080` (Intel TDX Confidential Space VM) |
 | **Sample settlement tx** | [`0x869647b1…`](https://coston2-explorer.flare.network/tx/0x869647b14305e075da9d38a337aeceaaf4716b5f7cd241be835b92a766dc146e) |
 
-That settlement cleared at **$1.010878** against an on-chain FTSOv2 read of **$1.010878** — 0 bps
+That settlement cleared at **$1.004315** against an on-chain FTSOv2 read of **$1.004315** — 0 bps
 of the 50 bps band, verified by the vault itself before it moved a single balance.
 
 ### The attestation is real, and checkable

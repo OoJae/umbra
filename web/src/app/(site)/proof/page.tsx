@@ -155,8 +155,8 @@ cast call 0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4 \\
   | jq -r .image_digest
 
 crane export \\
-  us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c994… - \\
-  | tar -xO app/matching.py | diff - engine/app/matching.py`}
+  us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c99447f578c28a5b583476c50609b3d4086df7dffb8b38a2dd74cef25f92 - \\
+  | tar -xO app/app/matching.py | diff - engine/app/matching.py`}
               />
             </div>
 
