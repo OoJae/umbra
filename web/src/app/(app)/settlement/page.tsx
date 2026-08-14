@@ -79,6 +79,15 @@ export default function SettlementPage() {
             Nothing crossed — {batch?.status === 'no_orders' ? 'the book was empty' : 'no orders crossed at the mid'}.
           </p>
         )}
+        {/* Belt and braces: the chain is the source of truth for whether a batch
+            settled, so never render an empty screen just because the engine's own
+            record of it was slow to arrive. */}
+        {phase === 'settled' && !batch && (
+          <p className="ok mt-3 text-sm">
+            Settled on-chain — the vault accepted the batch. Fetching the enclave&apos;s record of
+            it…
+          </p>
+        )}
       </Card>
 
       {batch && batch.status === 'settled' && (

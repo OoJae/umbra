@@ -82,11 +82,20 @@ export function useRunBatch() {
       })) as bigint;
 
       if (last >= expectedId) {
-        try {
-          const detail = await api.batch(Number(expectedId));
-          setBatch(detail);
-        } catch {
-          /* details may lag a moment; the chain already told us it settled */
+        // The chain advances the moment the receipt lands, but the engine only
+        // records the batch after its own bookkeeping — so /batches/{id} 404s for
+        // a second or two afterwards. Giving up on the first miss left the page in
+        // 'settled' with `batch` still null, and the result card renders on
+        // `batch && status === 'settled'`, so the whole payoff silently never
+        // appeared. Retry until the engine catches up.
+        for (let attempt = 0; attempt < 10 && !cancelled.current; attempt++) {
+          try {
+            const detail = await api.batch(Number(expectedId));
+            setBatch(detail);
+            break;
+          } catch {
+            await new Promise((r) => setTimeout(r, 1200));
+          }
         }
         setPhase('settled');
         return null;
