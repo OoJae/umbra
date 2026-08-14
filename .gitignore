@@ -52,3 +52,7 @@ demo/videos/*/.hyperframes/frame-packets/
 
 demo/videos/*/snapshots/
 demo/videos/*/assets/voice/
+
+# Frame-worker verification harnesses (transient)
+demo/videos/*/__*.html
+demo/videos/*/__*.js
