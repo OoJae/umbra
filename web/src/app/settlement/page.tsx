@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { ExecutionReceipt } from '@/components/ExecutionReceipt';
 import { Card, Chip, Copy, Row, Stat } from '@/components/ui';
 import { useDarkBook } from '@/hooks/useEngine';
 import { useRunBatch } from '@/hooks/useRunBatch';
@@ -112,6 +113,8 @@ export default function SettlementPage() {
               v={<span className="flex items-center gap-2 justify-end">{shortHex(batch.batch_digest, 12, 8)}{batch.batch_digest && <Copy text={batch.batch_digest} />}</span>}
             />
           </Card>
+
+          <ExecutionReceipt fills={batch.fills} oraclePrice1e6={oracle} batchId={batch.batch_id} />
 
           <Card title="Fills" subtitle="Public on-chain the moment the transaction confirmed.">
             <table className="w-full text-sm">

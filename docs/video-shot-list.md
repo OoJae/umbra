@@ -9,7 +9,7 @@ contract addresses.
 ## Before you hit record
 
 1. **Reset the book to a clean state** so counts start at zero:
-   `curl -s https://umbra-5a7rt8i83-oojaes-projects.vercel.app/api/engine/orderbook/public | jq '{count_buys,count_sells}'`
+   `curl -s https://umbra-beta.vercel.app/api/engine/orderbook/public | jq '{count_buys,count_sells}'`
 2. **Check which direction has inventory.** Each settled batch rotates Alice's and Bob's holdings,
    so run the E2E script once first (`--reverse` if needed) to confirm the flow is green, then top
    the wallets back up if either side is short.
@@ -23,11 +23,17 @@ contract addresses.
 **Not in this app.** Screen-record a public DEX swap with a mempool inspector open, showing the
 naked order.
 
-> "Everyone saw the whale coming."
+> "Everyone saw the whale coming. Dark pools were supposed to fix this — and between 2011 and 2018
+> the SEC fined essentially every major dark pool operator about three hundred million dollars for
+> lying about how their pool actually worked. Nobody caught it from their own fill data. It took
+> subpoenas, and years."
+
+Hold on that for a beat before the cut. This is the line that separates us from every other
+sealed-bid submission, all of which will open on MEV alone.
 
 ## Shot 2 — 0:20–0:50 · The sealed order
 
-**Page:** https://umbra-5a7rt8i83-oojaes-projects.vercel.app/ (Trade), profile 1.
+**Page:** https://umbra-beta.vercel.app/ (Trade), profile 1.
 
 1. Fill the order form — amount and the "use mid +2%" button. `QuotePreview` shows the live FTSOv2
    price and exactly what will be escrowed.
@@ -44,7 +50,7 @@ naked order.
 ## Shot 3 — 0:50–1:30 · The match
 
 **Profile 2**, fast cut: submit the opposite side. Then
-https://umbra-5a7rt8i83-oojaes-projects.vercel.app/settlement.
+https://umbra-beta.vercel.app/settlement.
 
 1. Dark Book now reads **1 buy · 1 sell**.
 2. Click **Trigger batch**. The progress panel runs an elapsed timer, the live FTSOv2 ticker, and a
@@ -58,9 +64,16 @@ https://umbra-5a7rt8i83-oojaes-projects.vercel.app/settlement.
 
 1. `BatchResultCard` shows **cleared vs oracle** and the deviation in bps — the last run was
    **0 bps of 50**.
-2. Click **view on explorer →** for the real `settleBatch` transaction on Coston2.
-3. Back to the Fills table and balances — FXRP and USDT0 have swapped sides.
-4. Go to https://umbra-5a7rt8i83-oojaes-projects.vercel.app/verify:
+2. **The "Your execution" card** — this is the money shot. It shows the connected wallet's own fill:
+   FXRP received, USDT0 paid, effective price, and *your price vs the oracle the vault read*. Land
+   the line under it: everyone in the batch cleared at the same uniform price, and the vault checked
+   that price against FTSOv2 before it moved a balance.
+
+   > "This is the receipt Barclays' clients never got."
+
+3. Click **view on explorer →** for the real `settleBatch` transaction on Coston2.
+4. Back to the Fills table and balances — FXRP and USDT0 have swapped sides.
+4. Go to https://umbra-beta.vercel.app/verify:
    - **REAL TEE · Intel TDX** badge
    - `hwmodel GCP_INTEL_TDX` · `secboot true` · `dbgstat disabled-since-boot`
    - **On-chain anchor: ✓ MATCH** — the two identical hashes stacked, with the caption that it was
@@ -71,12 +84,13 @@ https://umbra-5a7rt8i83-oojaes-projects.vercel.app/settlement.
 
 ## Shot 5 — 2:10–2:40 · Why Flare, and where it goes
 
-**Page:** https://umbra-5a7rt8i83-oojaes-projects.vercel.app/how
+**Page:** https://umbra-beta.vercel.app/how
 
 1. The architecture diagram.
 2. The trust-model section — say plainly what the operator *cannot* do, and what they *can*
    (rotate the signer, publicly and detectably).
-3. Roadmap: native FCC on Songbird once extension registration opens to outside developers.
+3. Roadmap: migrating to native FCC — registration is already open on Coston2; we kept our own
+   registry so the demo runs unattended through judging week.
 4. End card: `github.com/OoJae/umbra` + the addresses table.
 
 > "Confidential compute isn't bolted onto this — a sealed-bid auction is impossible without it.
@@ -96,7 +110,7 @@ https://umbra-5a7rt8i83-oojaes-projects.vercel.app/settlement.
 
 | Thing | Value |
 |---|---|
-| App | https://umbra-5a7rt8i83-oojaes-projects.vercel.app |
+| App | https://umbra-beta.vercel.app |
 | Repo | https://github.com/OoJae/umbra |
 | UmbraVault | `0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10` |
 | TeeRegistry | `0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4` |

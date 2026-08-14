@@ -5,19 +5,40 @@ FTSOv2 fair price and settled on Flare — so large trades can't be front-run.**
 
 Built for the Flare Summer Signal hackathon. Coston2 testnet only.
 
-**Live app:** https://umbra-5a7rt8i83-oojaes-projects.vercel.app
+**Live app:** https://umbra-beta.vercel.app
 
 ## The problem
 
-On a public DEX, a large order is visible to everyone the moment it hits the mempool. The whale
-gets front-run, sandwiched, and fills at a worse price than the market would otherwise give. Every
-existing "private trading" workaround either trusts an operator not to peek, or leaks the order
-through the settlement path anyway.
+On a public DEX, a large order is visible to everyone the moment it hits the mempool, so the whale
+gets front-run and fills worse than the market would otherwise give.
 
-A sealed-bid auction can't be built with cryptography alone — **somebody has to see the bids in
+Dark pools already solve that half in TradFi. **What they have never solved is that you have to
+trust the operator** — and between 2011 and 2018 the SEC sanctioned essentially every major US dark
+pool operator for lying about how their own venue worked, roughly **$300M in penalties**. ITG ran a
+secret prop desk that traded 262M shares against its own subscribers ($20.3M, admitted). Barclays
+deleted the most predatory trader from the venue-composition charts it showed clients ($70M,
+admitted). Merrill fabricated the execution venue on 15M+ child orders ($42M + $42M, admitted).
+Credit Suisse paid $84.3M.
+
+Every one of those took two to six years to surface and required subpoena power. **No customer ever
+caught any of it from their own fill data.** The charges were, in substance, *"you did not operate
+the way you said you did"* — which means the entire regulatory apparatus for dark pools is
+retrospective punishment for claims that were never verifiable in the first place. Europe hit the
+same wall and repealed its execution-quality reporting rules (RTS 27/28) in 2024, having found the
+reports were "hardly read."
+
+Umbra's bet is that a TEE plus an on-chain oracle turns two of those promises into things a machine
+checks *before* the trade:
+
+- *"We cleared you at the fair mid"* — `UmbraVault.settleBatch` re-reads FTSOv2 itself and reverts
+  past 50 bps. That conduct doesn't get punished here; it fails to settle.
+- *"Only the code we described saw your order"* — the image digest is asserted by the Confidential
+  Space launcher, not by us, and anchored on-chain. A hidden prop desk is unrepresentable.
+
+And a sealed-bid auction can't be built with cryptography alone — **somebody has to see the bids in
 order to match them**. Umbra makes that somebody a Trusted Execution Environment whose code is
-attested and whose key never leaves the enclave. Confidential compute isn't a bolt-on here; it is
-the product.
+attested, whose key never leaves the enclave, and whose pricing is checked by a contract it does not
+control. Confidential compute isn't a bolt-on here; it is the product.
 
 ## How it works
 
@@ -186,8 +207,14 @@ all 41 checks passed
 
 ## Roadmap
 
-- Migrate from Google Confidential Space to Flare's native Confidential Compute on Songbird once
-  extension registration opens to outside developers.
+- Migrate from Google Confidential Space to Flare's native Confidential Compute. Extension
+  registration is already open on Coston2 — `pre-build.sh` → `start-services.sh --chain coston2` →
+  `post-build.sh` registers your own extension *and your own TEE machine*. We did not depend on it
+  for this build because the Dev Hub describes FCC as "not yet a fully public production system" and
+  indexer credentials are request-gated, and the demo has to run unattended through judging week.
+  The migration is a packaging change rather than a redesign: `settleBatch` becomes an
+  `InstructionSender` op, the enclave key becomes an FCC-managed key, and the attested-signer check
+  becomes a `TeeMachineRegistry` lookup.
 - Full on-chain verification of the attestation JWT, which removes the signer-rotation trust
   assumption described above.
 - Multi-pair support, a commit–reveal fallback mode for when no TEE is available, and permissioned

@@ -250,7 +250,7 @@ reports `hash_matches: true, signer_matches: true`. Full details in `docs/addres
 
 ## Phase 3 (Frontend) — deployed and proven; H19 pending only the two-wallet rehearsal
 
-**Live app:** https://umbra-5a7rt8i83-oojaes-projects.vercel.app
+**Live app:** https://umbra-beta.vercel.app
 
 All four pages plus `/debug` are deployed and render live data. The strongest validation: the full
 gate script was re-run **through the production Vercel proxy** and passed **49/49**, settling on
@@ -353,3 +353,73 @@ behaviourally from faucet transfer logs rather than guessed from among ~30 impos
 
 **Still open, and needing the operator:** the demo video recording, and inviting external testnet
 testers from the Flare Telegram (§11 traction).
+
+---
+
+## Phase 6 — competitive research pass (2026-08-14, ~01:00–02:00 UTC)
+
+Three parallel research tracks (crypto/DeFi private trading, TradFi dark pool history, Flare
+ecosystem and judging patterns), with every claim about our own code verified directly before it
+was acted on. Two of the research agents' claims were checked and **rejected**, which is why this
+entry is worth reading.
+
+**Changed, and why:**
+
+- **Corrected a factual error in the submission.** We asserted native FCC extensions were "not
+  outsider-deployable — TEE nodes are Foundation-operated and extensions need code-hash
+  whitelisting." The FCC docs say otherwise: registration is open on Coston2, `post-build.sh`
+  registers *your own* TEE machine, and the code hash is your own reproducible image digest. Only
+  indexer credentials are gated. Asserting a false constraint about Flare's product, as our reason
+  for not using it, on the bounty named after that product, was the single biggest self-inflicted
+  risk in the packet. Note `docs/flare-summer-signal-win-strategy.md:127` had already flagged this
+  as *inferred, verify before relying on it* — and it propagated into the submission as fact anyway.
+- **Reframed the pitch on the dark pool enforcement record.** ~$300M of SEC penalties against
+  essentially every major US dark pool operator 2011–2018, none of it ever detected by a customer
+  from their own fill data. This answers "does it solve a real problem" with evidence instead of
+  assertion, and it is the one thing no competing sealed-bid submission will have. MEV stays as the
+  hook, stated honestly (sandwich losses are shrinking ~75% YoY — overclaiming in front of a quant
+  judge loses the criterion rather than winning it).
+- **Added two real weaknesses to Known limits:** escrow is a costless option (a trader can deposit,
+  submit, watch the oracle move and withdraw before settlement — the *severe* version is already
+  mitigated by the underfunded-trader rebuild at `engine/app/main.py`, but the optionality remains),
+  and pro-rata allocation leaks contra-side depth because our price is oracle-pegged rather than
+  demand-driven.
+- **`GET /orders/{order_id}`** — a trader could receive an `order_id` from `POST /orders` and had no
+  way to look it up. Status only: no amount, price, side, or trader. Order IDs are already public via
+  the Dark Book, so the endpoint is unauthenticated and deliberately thin — mapping an ID to a
+  trader would be a genuine leak even though the ID itself is public. 8 new tests.
+- **The "Your execution" receipt** on the settlement page — the connected wallet's own fill, its
+  effective price, and its deviation from the oracle the vault read. Deliberately **no fabricated
+  "an AMM would have cost you X" comparison**: there is no real pool to measure against, and
+  inventing a favourable benchmark is precisely the conduct Barclays was fined $70M for.
+
+**Two research claims checked and rejected:**
+
+- *"Plain-HTTP engine will cause mixed-content failures during judging."* False. `web/src/lib/api.ts`
+  sets `BASE = '/api/engine'`; every browser call is same-origin HTTPS through the Vercel route
+  handler and the browser never learns the engine's URL. An hour of TLS work would have bought
+  nothing.
+- *"Add on-chain Merkle roots / composed oracle price / Secure Random verification."* All require
+  redeploying `UmbraVault`, which changes the EIP-712 `verifyingContract` **and** invalidates the
+  attestation `eat_nonce` (it commits to the vault address), forcing a full enclave relaunch and
+  re-anchor. Negative expected value against a system passing 239 + 54 tests with hours left.
+
+**Caught in passing:** the app URL in every doc pointed at a per-deployment Vercel hash that now
+serves a *stale build*. All references moved to the stable alias `https://umbra-beta.vercel.app`,
+which follows production. Left unfixed, judges would have opened a frozen version of the app all
+week. Also persisted `IMAGE_FAMILY=confidential-space` into `.gcp-env`, because the deploy script
+defaults to `confidential-space-debug` and a future relaunch would have silently regressed
+`dbgstat` to `enabled`.
+
+**Open, and needing the operator:**
+
+1. The demo video recording (highest insurance value left — if the enclave dies during the Aug 15–21
+   judging window, the video is the only thing standing between us and a zero on technical
+   execution).
+2. **Select BOTH bounties** on the DoraHacks form — it asks for "bounties", plural. Two independent
+   $4,000 first places for one extra field.
+3. **`GET /orders/{order_id}` is built, tested and pushed, but NOT live.** Activating it needs the
+   enclave rebuilt and relaunched (image `sha256:78b1c943…` is already pushed to the registry), which
+   deletes and recreates the VM and mints a new signer requiring `scripts/register_tee.sh` to
+   re-anchor. That is a destructive action against a currently-healthy attested demo, so it was left
+   for the operator to decide rather than done unattended.

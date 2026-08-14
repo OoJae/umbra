@@ -25,17 +25,55 @@ market costs them money.
 
 ## The problem, and why privacy is load-bearing
 
-On a public DEX a large order is visible the moment it hits the mempool. The whale gets front-run,
-sandwiched, and fills worse than the market would otherwise give.
+On a public DEX a large order is visible the moment it hits the mempool, so the whale gets front-run
+and fills worse than the market would otherwise give. That is the familiar half of the problem, and
+we'd rather state it accurately than dramatically: on-chain sandwich attacks ran roughly 95,000
+incidents and ~$60M of losses over the year to Oct 2025, and are *shrinking* year over year. MEV is
+a size-dependent tax, not an emergency — it bites hard at $50k–$200k order sizes and barely at all
+below.
 
-**A sealed-bid auction cannot be built with cryptography alone — somebody has to see the bids in
-order to match them.** That is why confidential compute here is not a feature bolted onto a
-trading app; it *is* the product. Umbra makes that somebody a TEE whose code is attested and whose
-key never leaves the enclave.
+**The other half is the one nobody builds for, and it is much larger.** Dark pools already solve
+pre-trade visibility in TradFi. What they have never solved is that *you have to trust the operator*,
+and the historical record on that is damning. Between 2011 and 2018 the SEC sanctioned essentially
+every major US dark pool operator for misrepresenting how their own venue worked — roughly **$300M
+in penalties**:
+
+| Operator | Penalty | What they actually did |
+|---|---|---|
+| ITG / POSIT (2015) | $20.3M, **admitted** | Ran a secret prop desk, "Project Omega," that traded 262M shares against its own subscribers |
+| Barclays LX (2016) | $70M, **admitted** | Deleted the most predatory trader from the venue-composition charts it showed clients |
+| Credit Suisse (2016) | $84.3M | Largest ATS penalty ever levied |
+| Merrill Lynch (2018) | $42M SEC + $42M NYAG, **admitted** | Fabricated the execution venue on 15M+ child orders |
+| Deutsche Bank (2016) | $37M+ | Its order-ranking model sat silently frozen by a *bug* for two years |
+| UBS (2015) · Citi (2018) · Pipeline (2011) | $14.4M · $12.9M · $1.2M | Undisclosed HFT-only order types; routing to an excluded venue; ~80% of flow filled by a secret affiliate |
+
+**The decisive detail: every one of these took two to six years to surface and required SEC subpoena
+power. No customer ever detected any of it from their own fill data.** The charges were §17(a)(2)
+misrepresentation and Rule 301(b)(2) — "you did not operate the way you said you did." The entire
+regulatory apparatus for dark pools is *retrospective punishment for claims that were never
+verifiable in the first place.* Europe hit the same wall from the opposite side and **repealed**
+RTS 27/28 in 2024, on the finding that the mandated execution-quality reports were "hardly read" and
+"do not enable meaningful comparisons."
+
+Umbra's claim is that confidential compute plus an on-chain oracle turns two of those promises into
+things a machine checks **before** the trade rather than a regulator litigates years after it:
+
+- *"We cleared you at the fair mid."* `UmbraVault.settleBatch` re-reads FTSOv2 itself and reverts
+  past 50 bps. The Credit Suisse and Barclays conduct isn't punished here — it simply fails to
+  settle.
+- *"Only the code we described ever saw your order."* The image digest is asserted by the
+  Confidential Space launcher, not by us, and anchored on-chain. ITG's Project Omega is
+  *unrepresentable*: there is no prop desk inside the enclave, and the running image is a public
+  hash anyone can diff against the source.
+
+**And a sealed-bid auction cannot be built with cryptography alone — somebody has to see the bids in
+order to match them.** That is why confidential compute here is not a feature bolted onto a trading
+app; it *is* the product. Umbra makes that somebody a TEE whose code is attested, whose key never
+leaves the enclave, and whose pricing is checked by a contract it does not control.
 
 ## Demo
 
-- **Live app:** https://umbra-5a7rt8i83-oojaes-projects.vercel.app
+- **Live app:** https://umbra-beta.vercel.app
 - **Video:** _(link to be added)_
 - **Run it yourself:**
   ```bash
@@ -167,28 +205,70 @@ settlement is real on-chain FAsset movement, not a signal.
   verify. JWKS verification is roadmap.
 - No MEV protection between the vault and external DEXes — Umbra protects the matching process, not
   what you do with the proceeds.
+- **Escrow is a free option.** Because withdrawals are deliberately ungated, a trader can deposit,
+  submit a sealed order, watch FTSOv2 move, and withdraw before the batch settles — at zero cost.
+  The severe version of this is already handled: the engine re-reads live balances at a pinned block
+  before signing and rebuilds the batch without the defector, so one person walking away cannot
+  destroy everyone else's fill. The costless optionality itself remains. The fix is to lock escrow
+  at submission until the batch resolves, which is a vault change we did not want to make while the
+  attestation nonce is bound to the current vault address.
+- **Pro-rata allocation leaks contra-side depth.** Our clearing price comes from the oracle rather
+  than from supply and demand, so a probe order's fill size is an exact readout of how much opposing
+  interest is resting. It is cheap and repeatable. The standard venue answer is a minimum acceptable
+  quantity (MAQ) per order, which we would add engine-side next.
 
-## The honest gap, and the migration plan
+## Why not native FCC, and the migration plan
 
-Native Flare Confidential Compute extensions are **not outsider-deployable today** — TEE nodes are
-Foundation-operated and extensions need code-hash whitelisting. So Umbra runs on **Google
-Confidential Space**, the same TEE substrate FCC builds on, with the attestation anchored on Flare.
+Umbra runs on **Google Confidential Space** — the same substrate Flare's own Confidential Compute
+extensions run on — on **Intel TDX** rather than the AMD SEV of Flare's published examples.
 
-That is an interim, and the migration is concrete: the enclave already produces an attestation
-token and anchors its hash on-chain, so moving to a native FCC extension on Songbird changes where
-the token comes from, not the architecture around it.
+To be accurate about why, since it would be easy to overstate the constraint: FCC extension
+registration **is** open on Coston2 today. The scaffold walks you through `pre-build.sh` →
+`start-services.sh --chain coston2` → `post-build.sh`, and that last step registers your own TEE
+machine. This was a judgment call, not a capability gap. We chose not to depend on FCC for this
+build because the Dev Hub states FCC "is in the final stages of development and is not yet a fully
+public production system," indexer credentials are request-gated behind a support request, and the
+demo has to survive a week of unattended judging.
+
+The migration is a packaging change rather than a redesign: `settleBatch` becomes an
+`InstructionSender` op, the enclave key becomes an FCC-managed key, and the attested-signer check
+in `TeeRegistry` becomes a `TeeMachineRegistry` lookup. The enclave already produces an attestation
+token and anchors its hash on-chain, so what changes is where the token comes from — not the
+architecture around it.
 
 ## Roadmap
 
-- Native FCC extension on Songbird once registration opens to outside developers → mainnet.
-- Full on-chain verification of the attestation JWT, which removes the signer-rotation trust
-  assumption described above.
-- Multi-pair support; a commit–reveal fallback mode for when no TEE is available.
-- Permissioned institutional pools.
-- FDC proofs of XRPL-side funding.
+- **Native FCC extension** — register on Coston2 against the `fce-extension-scaffold`, then Songbird
+  → mainnet, per the migration path above.
+- **Remove the signer-rotation trust assumption** via FDC `Web2Json`: the enclave publishes
+  `{hwmodel, secboot, image_digest, signer}` over HTTPS, FDC attests it, and
+  `TeeRegistry.registerFromFdcProof` accepts a signer *only* if the image digest matches a pinned
+  value. The signer then stops being owner-asserted and becomes asserted by Flare's own data
+  connector. Alternatively, on-chain DCAP verification of the TDX quote itself — Automata Network
+  ships this in production for Scroll, Taiko and Flashbots.
+- **FDC `XRPPayment` for XRPL-side funding** — send XRP with a destination tag, FDC proves it in
+  ~3 confirmations (≈12s), the vault credits the dark-pool balance. This mirrors how FAssets v1.3
+  itself does destination-tag routing.
+- **Publish Umbra's executed VWAP as an FTSOv2 custom feed** (`IICustomFeed`, feed ID prefix `0x21`)
+  so any Flare contract can read dark-pool execution prices. Regulated dark pools are required to
+  print post-trade to the consolidated tape; hiding orders pre-trade and publishing prices
+  post-trade is exactly the shape of a compliant venue.
+- **Escrow locking and minimum-fill quantities** — see Known limits.
+- Multi-pair support; a commit–reveal fallback mode for when no TEE is available; permissioned
+  institutional pools.
 
 ## Traction
 
-Built solo inside the hackathon window. Dark pools are a proven multi-trillion-dollar TradFi
-primitive; the novel part here is that Flare makes the fair price and the attestation verifiable
-on-chain, which is what a dark pool has historically had to be trusted about.
+Built solo inside the hackathon window, with a live app and a live enclave rather than a prototype.
+
+On market fit rather than usage numbers: dark pools are a proven multi-trillion-dollar TradFi
+primitive, and the XRPfi demand this settles into is real and current — ~155M FXRP minted in seven
+months with **95.6% of it locked in DeFi**, against Flare's stated goal of moving 5 billion XRP into
+DeFi. The novel part is that Flare makes the fair price and the attestation verifiable on-chain,
+which is exactly what a dark pool has historically had to be trusted about.
+
+On the architecture choice: Stellar published a comparison of dark pool designs across MPC, FHE and
+TEEs and found FHE needed **204 minutes** to match a 10×10 book while TEEs ran at near-native speed,
+concluding TEEs are "the pragmatic choice for production systems today." We reached the same
+conclusion independently, and the on-chain price band is the additional safeguard that a TEE-based
+design is supposed to carry.

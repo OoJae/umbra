@@ -34,6 +34,10 @@ log = logging.getLogger("umbra.engine")
 
 VERSION = "0.2.0"
 
+# Upper bound on retained per-order outcomes. Well above max_book_size so a trader can still look
+# up an order several batches after it resolved.
+MAX_OUTCOMES = 10_000
+
 
 # ─────────────────────────── in-memory state ───────────────────────────
 
@@ -68,6 +72,24 @@ class BatchRecord:
     settled_at: int | None = None
     fills: list[dict[str, Any]] = field(default_factory=list)
     settled: bool = False
+    # Never serialized. These exist only so run_batch can resolve each drained order's outcome
+    # after _execute_batch returns, since only the matcher knows which ids were eligible.
+    matched_order_ids: set[str] = field(default_factory=set)
+    excluded_traders: set[str] = field(default_factory=set)
+
+
+@dataclass
+class OrderOutcome:
+    """Terminal fate of one order, kept after the book has been drained.
+
+    Deliberately carries no amount, price, side or trader. Order IDs are public — the Dark Book
+    lists them — so this record is served to anyone who asks and must disclose nothing that the
+    Dark Book and the settled batch do not already make public.
+    """
+
+    status: str
+    batch_id: int | None = None
+    resolved_at: int = field(default_factory=lambda: int(time.time()))
 
 
 class EngineState:
@@ -78,10 +100,19 @@ class EngineState:
         self.used_nonces: set[tuple[str, int]] = set()
         self.batches: dict[int, BatchRecord] = {}
         self.last_batch: BatchRecord | None = None
+        # order_id -> OrderOutcome, for orders that have left the book. Insertion-ordered and
+        # trimmed from the front so a long-running enclave cannot grow this without bound.
+        self.outcomes: dict[str, OrderOutcome] = {}
         self.seq = 0
         self.batch_running = False
         self.ready = False
         self.attestation: attestation_mod.AttestationBundle | None = None
+
+    def record_outcome(self, order_id: str, status: str, batch_id: int | None = None) -> None:
+        """Caller must hold self.lock."""
+        self.outcomes[order_id] = OrderOutcome(status=status, batch_id=batch_id)
+        while len(self.outcomes) > MAX_OUTCOMES:
+            self.outcomes.pop(next(iter(self.outcomes)))
 
 
 state = EngineState()
@@ -160,6 +191,19 @@ class BatchResponse(BaseModel):
     created_at: int | None = None
     settled_at: int | None = None
     fills: list[FillOut] | None = None
+
+
+class OrderStatusResponse(BaseModel):
+    """Status only. No amount, price, side or trader — see OrderOutcome."""
+
+    model_config = ConfigDict(extra="forbid")
+    order_id: str
+    status: Literal["pending", "matched", "unmatched", "dropped_underfunded"]
+    batch_id: int | None = None
+    # Present only for a settled batch, so the caller can fetch /batches/{id} for the public fills
+    # and compute their own execution quality client-side.
+    settlement_tx: str | None = None
+    resolved_at: int | None = None
 
 
 class BatchRunRequest(BaseModel):
@@ -395,6 +439,39 @@ def submit_order(body: SealedOrderIn) -> models.OrderAccepted:
     return models.OrderAccepted(accepted=True, order_id=order_id)
 
 
+@app.get("/orders/{order_id}", response_model=OrderStatusResponse)
+def get_order_status(order_id: str) -> OrderStatusResponse:
+    """Look up what happened to one order.
+
+    Order IDs are already public (the Dark Book lists every resting one), so this is deliberately
+    unauthenticated and deliberately thin: it discloses whether the order is still resting, and if
+    it has resolved, which batch resolved it. It never discloses the order's contents, and it never
+    maps an order to a trader — that link would be a real leak even though the ID itself is public.
+
+    To see what an order actually got, fetch /batches/{batch_id}: those fills are already public
+    on-chain in FillSettled, so execution quality can be computed by the caller without the enclave
+    revealing anything further.
+    """
+    with state.lock:
+        if order_id in state.book:
+            return OrderStatusResponse(order_id=order_id, status="pending")
+        outcome = state.outcomes.get(order_id)
+        if outcome is None:
+            raise HTTPException(status_code=404, detail={"code": "order_not_found"})
+        tx_hash = None
+        if outcome.batch_id is not None:
+            batch = state.batches.get(outcome.batch_id)
+            if batch is not None and batch.settled:
+                tx_hash = batch.tx_hash
+    return OrderStatusResponse(
+        order_id=order_id,
+        status=outcome.status,
+        batch_id=outcome.batch_id,
+        settlement_tx=tx_hash,
+        resolved_at=outcome.resolved_at,
+    )
+
+
 @app.get("/orderbook/public", response_model=PublicOrderbookResponse)
 def public_orderbook() -> PublicOrderbookResponse:
     """The Dark Book. Counts and ciphertext blobs only.
@@ -466,6 +543,16 @@ def run_batch(body: BatchRunRequest | None = None) -> BatchResponse:
             if record.status == "settled":
                 for rec in drained:
                     state.ledger.release(rec.order_id)
+                    # A settled batch is terminal for every order it drained: matched orders
+                    # filled, and the rest are discarded rather than returned to the book. That is
+                    # the behaviour a trader most needs to be able to see.
+                    if rec.order_id in record.matched_order_ids:
+                        outcome = "matched"
+                    elif rec.order.trader in record.excluded_traders:
+                        outcome = "dropped_underfunded"
+                    else:
+                        outcome = "unmatched"
+                    state.record_outcome(rec.order_id, outcome, record.batch_id)
             elif record.status in ("no_match", "matched_dry_run"):
                 # Nothing moved on-chain; put the book back so orders survive to the next attempt.
                 state.ledger.restore(ledger_snapshot)
@@ -529,6 +616,8 @@ def _execute_batch(drained: list[OrderRecord], request: BatchRunRequest, record:
     matched_ids = set(result.eligible_buy_ids) | set(result.eligible_sell_ids)
     record.fill_count = len(result.fills)
     record.unmatched_count = len(drained) - len(matched_ids)
+    record.matched_order_ids = matched_ids
+    record.excluded_traders = set(excluded)
 
     batch_id = chain.next_batch_id(block_number)
     record.batch_id = batch_id
