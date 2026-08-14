@@ -56,3 +56,6 @@ demo/videos/*/assets/voice/
 # Frame-worker verification harnesses (transient)
 demo/videos/*/__*.html
 demo/videos/*/__*.js
+
+demo/logo/*.png binary asset is small and IS tracked (it is a deliverable)
+!demo/logo/*.png
