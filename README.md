@@ -43,7 +43,7 @@ the product.
 | TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) |
 | FXRP (base) | [`0x0b6A3645c240605887a5532109323A3E12273dc7`](https://coston2-explorer.flare.network/address/0x0b6A3645c240605887a5532109323A3E12273dc7) |
 | USDT0 (quote) | [`0xC1A5B41512496B80903D1f32d6dEa3a73212E71F`](https://coston2-explorer.flare.network/address/0xC1A5B41512496B80903D1f32d6dEa3a73212E71F) |
-| TEE signer (attested) | [`0x442CE96a506e8492aA63C728950A51d92e38303e`](https://coston2-explorer.flare.network/address/0x442CE96a506e8492aA63C728950A51d92e38303e) |
+| TEE signer (attested) | [`0xcee433588CDB86Ff462095569A9E8D2625beA4DA`](https://coston2-explorer.flare.network/address/0xcee433588CDB86Ff462095569A9E8D2625beA4DA) |
 
 **The TEE is real.** The engine runs in a Google Confidential Space VM on **Intel TDX**, and its
 settlement key was generated inside the enclave. The attestation is a Google-signed RS256 vTPM
@@ -54,6 +54,28 @@ Live engine: `http://136.112.118.220:8080` · sample settlement signed inside th
 
 Every address was verified on-chain rather than copied from documentation; the derivation and the
 re-runnable verification command for each are in [docs/addresses.md](docs/addresses.md).
+
+## Architecture
+
+```
+  browser                        enclave (Intel TDX)              Flare Coston2
+ ---------                      ---------------------            ---------------
+  sign EIP-712 order
+  crypto_box_seal  ──────────▶  decrypt + verify signature
+                                verify nonce, deadline, escrow
+                                read FTSOv2 XRP/USD  ◀──────────  FtsoV2
+                                clear all crossers at the mid
+                                sign Batch with enclave key
+                                settleBatch  ─────────────────▶   UmbraVault
+                                                                  · recover signer
+                                                                  · == TeeRegistry.teeSigner()
+                                                                  · re-read FTSOv2 itself
+                                                                  · require |price-oracle| <= 50bps
+                                                                  · swap balances atomically
+```
+
+Only ciphertext ever leaves the browser. The vault never trusts the enclave's price — it reads
+FTSOv2 itself and refuses anything outside the band.
 
 ## How Umbra uses Flare
 
@@ -104,8 +126,6 @@ a bogus signer registered, and while the oracle reverts) and once on real chain
 - The public Dark Book returns order *counts* alongside the ciphertexts, so with a single order
   in the book the count discloses that order's side. The individual blobs stay opaque and carry no
   side annotation, but the aggregate is a real (small) leak rather than a perfect one.
-- The Confidential Space VM currently runs the `confidential-space-debug` image family, so its
-  attestation reports `dbgstat: enabled`.
 - The web app proxies the engine through its own server so the browser never needs CORS and the
   operator token never reaches the client. A side effect is that anyone with the URL can trigger a
   batch; the worst outcome is an empty batch or a "already running" response, so it is left open
@@ -134,7 +154,31 @@ cd contracts && forge test    # 228 tests across 6/6, 18/6 and 6/18 decimal pair
 set -a; . ../.env; set +a
 forge script script/Deploy.s.sol:Deploy --rpc-url $COSTON2_RPC_URL --broadcast --slow
 
-cd ../engine && uv run uvicorn app.main:app --port 8080
+cd ../engine && uv run uvicorn app.main:app --port 8080   # or point at the live enclave
+```
+
+### Prove it end to end
+
+`scripts/e2e_demo.py` runs the entire flow against real Coston2 and asserts every step — deposits,
+two sealed orders, a batch, the on-chain balance deltas, replay protection, and an ungated
+withdrawal. It defaults to `ENGINE_URL` from `.env`, so it follows wherever the enclave lives.
+
+```bash
+uv run --project engine --with requests python scripts/e2e_demo.py
+uv run --project engine --with requests python scripts/e2e_demo.py --reverse   # flip direction
+```
+
+Each settled batch rotates Alice's and Bob's inventory, so `--reverse` lets it run repeatedly
+without returning to the faucet. Every assertion is an equality against on-chain state read
+independently of the engine — the engine is never trusted about anything the chain can be asked
+directly.
+
+```
+1 — PREFLIGHT      enclave mode: REAL TEE (Intel TDX)   attestation: ok
+                   hwmodel=GCP_INTEL_TDX  secboot=True  dbgstat=disabled-since-boot
+5 — ON-CHAIN       cleared $1.010878 vs oracle $1.010878  (0 bps of 50)
+6 — REPLAY         re-submitting a settled batch reverts with BadBatchId
+all 41 checks passed
 ```
 
 ## Roadmap
@@ -147,6 +191,13 @@ cd ../engine && uv run uvicorn app.main:app --port 8080
   institutional pools.
 - FDC proofs of XRPL-side funding.
 
+## Built during the hackathon
+
+Everything in this repository was written from scratch during the event — first commit
+**2026-08-13 21:36 UTC**, on an empty repository. Contracts, the TEE engine, the attestation
+plumbing, the frontend and the test suites are all new work. 239 Foundry tests, 54 engine unit
+tests, and a 41-assertion end-to-end rehearsal against live Coston2.
+
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).

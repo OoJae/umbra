@@ -125,7 +125,7 @@ Both flavours are exercised by `contracts/src/ProbeFtsoV2.sol`, which compiles c
 |---|---|---|---|
 | TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) | [`0xba8633d2…`](https://coston2-explorer.flare.network/tx/0xba8633d2a8a5dfb92dfc73a02f310325f0b0bda8dc44f80843712fd987dccb23) | DEPLOYED + SOURCE VERIFIED |
 | UmbraVault | [`0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10`](https://coston2-explorer.flare.network/address/0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10) | [`0x6a0039c1…`](https://coston2-explorer.flare.network/tx/0x6a0039c142a9e0dedeb67954be073d3e8fff5e430e0147440fcd18a6697cc817) | DEPLOYED + SOURCE VERIFIED |
-| TEE signer | `0x442CE96a506e8492aA63C728950A51d92e38303e` | anchored via `RegisterTee.s.sol` | REGISTERED — real Intel TDX enclave |
+| TEE signer | `0xcee433588CDB86Ff462095569A9E8D2625beA4DA` | anchored via `RegisterTee.s.sol` | REGISTERED — real Intel TDX enclave |
 
 ### Confidential Space (Phase 2) — genuine Intel TDX, not simulated
 
@@ -139,7 +139,7 @@ the enclave**. The attestation is a real Google-signed vTPM token, not our simul
 | `hwmodel` | **`GCP_INTEL_TDX`** |
 | `swname` | `CONFIDENTIAL_SPACE` |
 | `secboot` | `true` |
-| `dbgstat` | `enabled` (we run the `confidential-space-debug` image family) |
+| `dbgstat` | **`disabled-since-boot`** (production `confidential-space` image family) |
 | `eat_nonce` | `0xb3bd51793eb5461c79f9e156286831c744b9b1d5763d904ca4979f0d0a3eed22` |
 | `submods.container.image_digest` | `sha256:1c5af92de02a7886b0d5be8e04474977888ab7997f5f0c0afeccd3a1f00a6c85` |
 
@@ -154,14 +154,14 @@ workload — so it says which code is actually running.
 | GCP project | `umbra-tee-08132358` |
 | VM | `umbra-tee-1`, `c3-standard-4`, Intel TDX, `us-central1-a` |
 | Image | `us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:1c5af92d…` |
-| Anchored attestation hash | `0xfd8796f59bfa285a69ec153ac4e355a381e9bfee44e39ddb6f836e2ca978a5b8` |
+| Anchored attestation hash | `0xa8c32fdd5fd02334d3803fcb3f5e2fbf68747072e6be24c1c1f55d3985eb2864` |
 
 Verify the anchor yourself, independently of the engine:
 
 ```bash
 curl -s http://136.112.118.220:8080/attestation | jq -r .raw | tr -d '\n' | cast keccak
 cast call $REGISTRY_ADDRESS "attestationHash()(bytes32)" --rpc-url $RPC
-# both -> 0xfd8796f59bfa285a69ec153ac4e355a381e9bfee44e39ddb6f836e2ca978a5b8
+# both -> 0xa8c32fdd5fd02334d3803fcb3f5e2fbf68747072e6be24c1c1f55d3985eb2864
 ```
 
 (`tr -d '\n'` matters — `jq -r` appends a newline that would change the hash.)
@@ -171,7 +171,14 @@ cast call $REGISTRY_ADDRESS "attestationHash()(bytes32)" --rpc-url $RPC
 | Batch | Settled by | Tx |
 |---|---|---|
 | 2 | local simulated enclave | [`0x195de036…`](https://coston2-explorer.flare.network/tx/0x195de036e202a23fc5dfddee53c69b684b9b51590d52152a45cf6a138f37998e) |
-| 3 | **real Intel TDX enclave** | [`0x9bde5c5a…`](https://coston2-explorer.flare.network/tx/0x9bde5c5a801c17d4d0268aa7deb967cbd8daff228cf1044d396cf5f1ee140aca) |
+| 3 | real Intel TDX enclave (debug image) | [`0x9bde5c5a…`](https://coston2-explorer.flare.network/tx/0x9bde5c5a801c17d4d0268aa7deb967cbd8daff228cf1044d396cf5f1ee140aca) |
+| 4 | real TDX, triggered through the **Vercel proxy** | [`0xf69e0077…`](https://coston2-explorer.flare.network/tx/0xf69e0077cfdbb6f88050a7e6ca6bcf035df47afceebc769fcaab88493ea32855) |
+| 6 | **production image**, E2E rehearsal run 1 | [`0x052bb9d1…`](https://coston2-explorer.flare.network/tx/0x052bb9d1c380c7d19c216e137a9e7a4abd1ff4069b030c7a7b8f2866f7a0ac34) |
+| 7 | **production image**, E2E rehearsal run 2 | [`0xd2e98820…`](https://coston2-explorer.flare.network/tx/0xd2e988201a9ad172750be4d88fd3cb04b2bcb9bb38399d53851ac3e3ae3a12a5) |
+
+The enclave was relaunched on the production `confidential-space` image family in Phase 4, which
+cleared the `dbgstat: enabled` caveat. That minted a new enclave key, so the signer and attestation
+hash above are the post-swap values; `registrationCount` on the registry records every rotation.
 
 Batch 3 cleared at $1.007226 against an on-chain FTSOv2 read of $1.007469 — 2 bps of the 50 bps
 band, verified by the vault itself before it moved a single balance.

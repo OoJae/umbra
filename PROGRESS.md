@@ -291,7 +291,65 @@ unexercised.
 - **`--reverse` on the demo script.** Each settled batch rotates Alice's and Bob's inventory, so
   flipping direction lets the demo run indefinitely without returning to the faucet.
 
-### NEXT
-- **Operator step for the H19 gate:** import the ALICE and BOB private keys from `.env` into two
-  MetaMask profiles (throwaway testnet keys, already funded) and click the flow in both.
-- Phase 4: `scripts/e2e_demo.py` (still a stub), README/submission polish, demo recording.
+---
+
+## Phase 4 (E2E + hardening) — complete
+
+**Production Confidential Space image.** The VM was relaunched on the `confidential-space` family
+instead of `confidential-space-debug`, clearing the one visible caveat: the attestation now reports
+**`dbgstat: disabled-since-boot`** while keeping `hwmodel: GCP_INTEL_TDX`, `secboot: true` and the
+Google RS256 signature. That minted a new enclave key, so the signer and attestation hash were
+re-anchored — new signer `0xcee433588CDB86Ff462095569A9E8D2625beA4DA`, hash
+`0xa8c32fdd…`. Nothing downstream needed redeploying: the frontend reads `/info` and `TeeRegistry`
+dynamically, so it followed the new enclave on its own.
+
+**`scripts/e2e_demo.py` implemented and run twice clean** against live Coston2 (41 and 43
+assertions), each landing a distinct settlement: [`0x052bb9d1…`] and [`0xd2e98820…`]. It reuses
+`scripts/umbra_lib.py` rather than forking the gate script, which is why that module was split out
+in Phase 2. Two assertions are new versus `seed_demo.py`:
+- a `/healthz` preflight reporting which mode is actually live, and
+- **replay protection** — re-submitting the identical settled batch via `eth_call` must revert with
+  `BadBatchId`. It costs no gas and it is the only place the suite demonstrates on-chain replay
+  defence.
+
+**Two fixes the runs surfaced:**
+- The script defaulted to `localhost` and hung when the local engine was gone. It now defaults to
+  `ENGINE_URL` from `.env`, so it follows wherever the enclave lives.
+- Deposits assumed an empty vault, so a re-run failed preflight when a trader's funds were sitting
+  in escrow from the previous settlement rather than in their wallet. Deposits now top up only the
+  shortfall, which is what makes the rehearsal genuinely repeatable.
+
+**README completed** with the architecture diagram (required by success criterion #5 and previously
+absent), end-to-end run instructions, and the first-commit evidence line.
+
+## Phase 5 (Ship) — complete
+
+`docs/submission.md` drafted against every §11 DoraHacks field with real, clickable values · MIT
+`LICENSE` added (the README asserted MIT with no file) · `docs/addresses.md` updated with the
+post-swap attestation and all settlements · public GitHub repo · tag `v0.1-hackathon`.
+
+### DECISIONS
+- **Switched to the production TEE image despite having a working system.** The debug image's
+  `dbgstat: enabled` was the single visible weakness on the Verify page, and with ~20 hours of slack
+  the risk was affordable. The fallback — revert to debug and disclose honestly — was pre-committed
+  and never needed.
+- **The submission uses the README's trust-model wording, not the build guide's.** The guide says
+  the operator "cannot forge settlements". That is not true while `registerTeeSigner` is
+  owner-re-registrable and on-chain JWT verification is a stretch goal, and a judge who checks would
+  find the overclaim. The accurate framing — signer rotation is publicly detectable via the
+  on-chain anchor — is what ships. This was flagged as a risk back in Phase 0.
+
+### CLOSING ENTRY
+
+Built in roughly six hours of wall clock against a 24-hour budget. Every gate passed on the first
+attempt except H2, which waited on faucet funding. No pivot rule fired: §9-A did not trigger because
+the faucet dispensed real FXRP, and §9-B/C/D were never reached.
+
+The thing that most shaped the outcome was verifying assumptions before building on them — the
+EIP-712 cross-language parity was proven byte-identical before a line of engine code was written,
+which retired the §9-C pivot trigger up front; the Coston2 opcode support was probed directly rather
+than trusting folklore, which corrected a wrong `evm_version`; and the USDT0 address was established
+behaviourally from faucet transfer logs rather than guessed from among ~30 impostor tokens.
+
+**Still open, and needing the operator:** the demo video recording, and inviting external testnet
+testers from the Flare Telegram (§11 traction).
