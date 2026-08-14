@@ -277,3 +277,56 @@ def test_randomized_conservation(base_dec, quote_dec):
                 if o.side == SELL and o.trader == trader and o.limit_price_1e6 <= mid
             )
             assert amount <= cap
+
+
+# ─────────────── eligibility is not a fill ───────────────
+#
+# These pin the distinction `filled_order_ids` exists for. Reporting an order as matched when it
+# received nothing is the one status error that misleads the trader who most needs the truth, and
+# GET /orders/{id} keys its status off this field.
+
+
+def test_filled_ids_exclude_a_crossing_order_that_got_no_allocation():
+    """A tiny buy against a huge sell: it crosses, but its pro-rata share floors below min_base."""
+    min_base = min_fillable_base(MID, NUM, DEN)
+    big = order("b-big", ALICE, BUY, 5_000_000, MID + 50_000, seq=0)
+    dust = order("b-dust", CAROL, BUY, max(1, min_base - 1), MID + 50_000, seq=1)
+    sell = order("s1", BOB, SELL, 5_000_000, MID - 50_000, seq=2)
+
+    r = match_batch([big, dust, sell], MID, NUM, DEN)
+
+    assert "b-dust" in r.eligible_buy_ids, "it does cross the mid, so it is eligible"
+    assert "b-dust" not in r.filled_order_ids, "but it received nothing, so it is not filled"
+    assert "b-big" in r.filled_order_ids
+    assert "s1" in r.filled_order_ids
+
+
+def test_filled_ids_exclude_an_order_whose_only_counterparty_is_itself():
+    """Self-trade exclusion means this order crosses but can never fill."""
+    buy = order("b1", ALICE, BUY, 1_000_000, MID + 10_000, seq=0)
+    sell = order("s1", ALICE, SELL, 1_000_000, MID - 10_000, seq=1)
+
+    r = match_batch([buy, sell], MID, NUM, DEN)
+
+    assert r.eligible_buy_ids == ("b1",)
+    assert r.eligible_sell_ids == ("s1",)
+    assert r.fills == ()
+    assert r.filled_order_ids == (), "a self-trade fills nobody"
+
+
+def test_filled_ids_is_always_a_subset_of_eligible_ids():
+    rng = random.Random(20260814)
+    for _ in range(200):
+        orders = []
+        for k in range(rng.randint(2, 12)):
+            side = rng.choice([BUY, SELL])
+            limit = MID + rng.randint(-80_000, 80_000)
+            orders.append(order(
+                f"o{k}", rng.choice([ALICE, BOB, CAROL, DAVE]), side,
+                rng.randint(1, 8_000_000), limit, seq=k,
+            ))
+        r = match_batch(orders, MID, NUM, DEN)
+        eligible = set(r.eligible_buy_ids) | set(r.eligible_sell_ids)
+        assert set(r.filled_order_ids) <= eligible
+        # Every filled order must appear in at least one fill on its own side.
+        assert (len(r.filled_order_ids) > 0) == (len(r.fills) > 0)

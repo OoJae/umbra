@@ -70,8 +70,11 @@ control. Confidential compute isn't a bolt-on here; it is the product.
 settlement key was generated inside the enclave. The attestation is a Google-signed RS256 vTPM
 token (`hwmodel: GCP_INTEL_TDX`, `secboot: true`), whose nonce commits to exactly this enclave key
 and this vault, and whose image digest is asserted by the launcher rather than by our own code.
-Live engine: `http://136.112.118.220:8080` · sample settlement signed inside the enclave:
-[`0x9bde5c5a…`](https://coston2-explorer.flare.network/tx/0x9bde5c5a801c17d4d0268aa7deb967cbd8daff228cf1044d396cf5f1ee140aca)
+Live engine: `http://136.112.118.220:8080` · sample settlement signed inside the enclave by the
+**currently registered** signer:
+[`0xd2e98820…`](https://coston2-explorer.flare.network/tx/0xd2e988201a9ad172750be4d88fd3cb04b2bcb9bb38399d53851ac3e3ae3a12a5)
+(earlier settlements in [docs/addresses.md](docs/addresses.md) were signed by prior enclave keys —
+every boot mints a fresh one, and each rotation is a public on-chain event.)
 
 Every address was verified on-chain rather than copied from documentation; the derivation and the
 re-runnable verification command for each are in [docs/addresses.md](docs/addresses.md).
@@ -152,9 +155,21 @@ a bogus signer registered, and while the oracle reverts) and once on real chain
   one, precisely because withdrawals are ungated.
 - No MEV protection between the vault and external DEXes — Umbra protects the matching process, not
   what you do with the proceeds afterwards.
-- The public Dark Book returns order *counts* alongside the ciphertexts, so with a single order
-  in the book the count discloses that order's side. The individual blobs stay opaque and carry no
-  side annotation, but the aggregate is a real (small) leak rather than a perfect one.
+- **The public Dark Book leaks more than the blobs suggest.** Three things, stated plainly because
+  "even we can't read these" is true of the *contents* and not of everything:
+  - The buy/sell counts are published, so with a single order resting the count discloses its side —
+    and since the counts update as orders arrive, anyone polling can attribute a side to each new
+    order rather than just to a lone one.
+  - Each blob's exact byte length is published. `crypto_box_seal` adds a fixed 48-byte overhead to
+    the plaintext, and the plaintext is JSON carrying the amount as decimal digits, so the length
+    discloses the order's order of magnitude. Padding the plaintext to a fixed width before sealing
+    closes this and is the obvious next change.
+  - The contents stay genuinely opaque: no blob carries a side annotation, and no amount, price or
+    signature is recoverable from it.
+- **The engine logs which address submitted which order id**, and Confidential Space redirects
+  container logs to Cloud Logging, so the operator learns *who* traded and *when* in real time — but
+  not *what*. Order contents never enter a log line; the logger enforces a field allowlist and every
+  value-bearing field on the order type is `repr=False`, both covered by tests.
 - The web app proxies the engine through its own server so the browser never needs CORS and the
   operator token never reaches the client. The demo's "Trigger batch" button is public, which means
   **anyone with the URL can trigger a batch** — the operator token protects the engine from direct
@@ -251,7 +266,7 @@ all 41 checks passed
 
 Everything in this repository was written from scratch during the event — first commit
 **2026-08-13 21:36 UTC**, on an empty repository. Contracts, the TEE engine, the attestation
-plumbing, the frontend and the test suites are all new work. 239 Foundry tests, 67 engine unit
+plumbing, the frontend and the test suites are all new work. 239 Foundry tests, 71 engine unit
 tests, and a 41-assertion end-to-end rehearsal against live Coston2.
 
 ## More

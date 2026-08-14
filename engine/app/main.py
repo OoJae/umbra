@@ -76,6 +76,7 @@ class BatchRecord:
     # after _execute_batch returns, since only the matcher knows which ids were eligible.
     matched_order_ids: set[str] = field(default_factory=set)
     excluded_traders: set[str] = field(default_factory=set)
+    expired_order_ids: set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -198,7 +199,7 @@ class OrderStatusResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     order_id: str
-    status: Literal["pending", "matched", "unmatched", "dropped_underfunded"]
+    status: Literal["pending", "matched", "unmatched", "dropped_underfunded", "expired"]
     batch_id: int | None = None
     # Present only for a settled batch, so the caller can fetch /batches/{id} for the public fills
     # and compute their own execution quality client-side.
@@ -546,6 +547,8 @@ def run_batch(body: BatchRunRequest | None = None) -> BatchResponse:
                     # the behaviour a trader most needs to be able to see.
                     if rec.order_id in record.matched_order_ids:
                         outcome = "matched"
+                    elif rec.order_id in record.expired_order_ids:
+                        outcome = "expired"
                     elif rec.order.trader in record.excluded_traders:
                         outcome = "dropped_underfunded"
                     else:
@@ -583,6 +586,16 @@ def _execute_batch(drained: list[OrderRecord], request: BatchRunRequest, record:
 
     chain.check_oracle_freshness(oracle_ts, block_ts)
 
+    # A signed order carries a deadline, and POST /orders refuses one that is already close to
+    # expiry — but nothing re-checked it at match time, so an order could rest in the book past its
+    # deadline and still settle. The trader signed a time bound; honour it against the block the
+    # batch is priced from, not against the moment they submitted.
+    expired_ids = {r.order_id for r in drained if r.order.deadline <= block_ts}
+    record.expired_order_ids = expired_ids
+    if expired_ids:
+        log_event(log, "batch.dropping_expired", level=logging.WARNING,
+                  dropped_expired=len(expired_ids))
+
     excluded: set[str] = set()
     result = None
     for attempt in range(settings.batch_retry_limit + 1):
@@ -596,7 +609,7 @@ def _execute_batch(drained: list[OrderRecord], request: BatchRunRequest, record:
                 seq=r.seq,
             )
             for r in drained
-            if r.order.trader not in excluded
+            if r.order.trader not in excluded and r.order_id not in expired_ids
         ]
         result = match_batch(
             candidates, price, constants.quote_scale_num, constants.quote_scale_den, constants.max_fills
@@ -623,7 +636,9 @@ def _execute_batch(drained: list[OrderRecord], request: BatchRunRequest, record:
     matched_ids = set(result.eligible_buy_ids) | set(result.eligible_sell_ids)
     record.fill_count = len(result.fills)
     record.unmatched_count = len(drained) - len(matched_ids)
-    record.matched_order_ids = matched_ids
+    # Eligibility is not a fill: an order can cross the mid and still receive nothing. Status
+    # reporting keys off what was actually allocated, so a zero-fill order reads "unmatched".
+    record.matched_order_ids = set(result.filled_order_ids)
     record.excluded_traders = set(excluded)
 
     batch_id = chain.next_batch_id(block_number)

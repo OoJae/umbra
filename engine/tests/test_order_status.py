@@ -32,7 +32,7 @@ def test_response_rejects_added_plaintext_fields(field):
 
 
 def test_only_terminal_statuses_are_representable():
-    for status in ("pending", "matched", "unmatched", "dropped_underfunded"):
+    for status in ("pending", "matched", "unmatched", "dropped_underfunded", "expired"):
         assert OrderStatusResponse(order_id="a", status=status).status == status
     with pytest.raises(ValidationError):
         OrderStatusResponse(order_id="a", status="insufficient_escrow_for_2500000")

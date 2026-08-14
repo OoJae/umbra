@@ -195,6 +195,15 @@ def main() -> int:
     deadline = int(time.time()) + 3600
     nonce0 = int(time.time() * 1000)
 
+    # Baseline the book so the assertion below measures OUR two orders rather than assuming the
+    # engine started empty. A judge who submits an order and leaves it resting would otherwise fail
+    # a check that has nothing to do with whether this flow works.
+    book0 = requests.get(f"{engine}/orderbook/public", timeout=15).json()
+    resting0 = (book0["count_buys"], book0["count_sells"])
+    if resting0 != (0, 0):
+        print(f"  note: {resting0[0]} buys and {resting0[1]} sells were already resting; "
+              f"asserting on the delta")
+
     for i, (account, side, limit, label) in enumerate([
         (buyer, BUY, price * 10200 // 10000, f"{buyer_name} BUY"),
         (seller, SELL, price * 9800 // 10000, f"{seller_name} SELL"),
@@ -219,8 +228,8 @@ def main() -> int:
         checks.check(f"{label} response leaks no plaintext", not leaked, f"leaked {leaked}")
 
     book = requests.get(f"{engine}/orderbook/public", timeout=15).json()
-    checks.equal("dark book holds one buy and one sell",
-                 (book["count_buys"], book["count_sells"]), (1, 1))
+    checks.equal("dark book gained one buy and one sell",
+                 (book["count_buys"] - resting0[0], book["count_sells"] - resting0[1]), (1, 1))
     checks.check("dark book exposes no plaintext", str(base_amount) not in json.dumps(book))
 
     # ───────────────────── 4. batch ─────────────────────

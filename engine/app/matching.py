@@ -83,6 +83,12 @@ class MatchResult:
     eligible_buy_ids: tuple[str, ...]
     eligible_sell_ids: tuple[str, ...]
     matched_trader_count: int
+    # Orders that actually received a non-zero allocation. Strictly a subset of the eligible ids:
+    # an order can cross the mid and still get nothing, because its pro-rata share floored below
+    # min_base, because the 256-fill cap was reached, or because every remaining counterparty was
+    # itself. Reporting "matched" for those would be a lie to the one trader who most needs the
+    # truth, so status reporting keys off this rather than off eligibility.
+    filled_order_ids: tuple[str, ...] = ()
 
 
 def match_batch(
@@ -139,6 +145,8 @@ def match_batch(
     ]
 
     fills: list[Fill] = []
+    buy_filled = [0] * len(buys)
+    sell_filled = [0] * len(sells)
     i = 0
     low_water = 0
     while i < len(buys) and len(fills) < max_fills:
@@ -173,6 +181,8 @@ def match_batch(
             continue
 
         fills.append(Fill(buys[i].trader, sells[j].trader, take, q))
+        buy_filled[i] += take
+        sell_filled[j] += take
         buy_rem[i] -= take
         sell_rem[j] -= take
         if 0 < buy_rem[i] < min_base:
@@ -189,6 +199,10 @@ def match_batch(
         eligible_buy_ids=buy_ids,
         eligible_sell_ids=sell_ids,
         matched_trader_count=len(traders),
+        filled_order_ids=tuple(
+            [o.order_id for o, got in zip(buys, buy_filled) if got > 0]
+            + [o.order_id for o, got in zip(sells, sell_filled) if got > 0]
+        ),
     )
     assert_invariants(result, buys, sells, fillable, quote_num, quote_den, max_fills)
     return result

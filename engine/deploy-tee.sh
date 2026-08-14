@@ -114,9 +114,17 @@ cmd_wait() {
 }
 
 cmd_logs() {
+  # Confidential Space routes container stdout/stderr (tee-container-log-redirect) into the
+  # `confidential-space-launcher` log, as jsonPayload.MESSAGE on a gce_instance resource.
+  #
+  # The previous filter matched on labels."compute.googleapis.com/resource_name" and printed
+  # textPayload, and silently returned zero bytes for both reasons — which meant the only window
+  # into a running enclave was broken exactly when it would be needed. --freshness is required too:
+  # `gcloud logging read` defaults to the last day only.
   gcloud logging read \
-    "resource.type=gce_instance AND labels.\"compute.googleapis.com/resource_name\"=\"${VM_NAME}\"" \
-    --project="$PROJECT_ID" --limit="${LOG_LIMIT:-80}" --format='value(textPayload)' --order=desc
+    "logName=\"projects/${PROJECT_ID}/logs/confidential-space-launcher\"" \
+    --project="$PROJECT_ID" --limit="${LOG_LIMIT:-80}" \
+    --format='value(jsonPayload.MESSAGE)' --order=desc --freshness="${LOG_FRESHNESS:-7d}"
 }
 
 cmd_destroy() { run gcloud compute instances delete "$VM_NAME" --zone="$ZONE" --project="$PROJECT_ID" --quiet; }

@@ -115,3 +115,19 @@ def test_settled_releases_escrow_and_clears_the_book(loaded_state, monkeypatch):
     assert loaded_state.ledger.committed(TRADER, QUOTE) == 0
     assert loaded_state.outcomes["order-1"].status == "matched"
     assert loaded_state.outcomes["order-1"].batch_id == 42
+
+
+def test_expired_order_is_reported_expired_not_unmatched(loaded_state, monkeypatch):
+    """An order whose signed deadline has passed must not settle, and must say why."""
+    def settled(drained, request, record):
+        record.status = "settled"
+        record.settled = True
+        record.batch_id = 43
+        record.matched_order_ids = set()
+        record.expired_order_ids = {"order-1"}
+        return record
+
+    monkeypatch.setattr(main_mod, "_execute_batch", settled)
+    main_mod.run_batch(BatchRunRequest())
+
+    assert loaded_state.outcomes["order-1"].status == "expired"

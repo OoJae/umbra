@@ -62,9 +62,16 @@ things a machine checks **before** the trade rather than a regulator litigates y
   past 50 bps. The Credit Suisse and Barclays conduct isn't punished here — it simply fails to
   settle.
 - *"Only the code we described ever saw your order."* The image digest is asserted by the
-  Confidential Space launcher, not by us, and anchored on-chain. ITG's Project Omega is
-  *unrepresentable*: there is no prop desk inside the enclave, and the running image is a public
-  hash anyone can diff against the source.
+  Confidential Space launcher, not by us, and it is in an attestation whose keccak is anchored
+  on-chain. So the operator cannot swap the workload without the digest changing. ITG's Project
+  Omega — a prop desk quietly trading against subscribers — would require a different image, and the
+  image is named in a Google-signed token we do not author.
+
+  Stated with its current limit, since this is the claim most worth attacking: the digest identifies
+  the image, but our container registry is not world-readable, so a third party cannot yet pull that
+  exact image and diff it against this repo. Verifying the digest *means* something today because
+  Google asserts it; verifying that the digest corresponds to *this source* still requires trusting
+  us. Publishing the image and a reproducible build is the fix, and it is small.
 
 **And a sealed-bid auction cannot be built with cryptography alone — somebody has to see the bids in
 order to match them.** That is why confidential compute here is not a feature bolted onto a trading
@@ -143,7 +150,7 @@ inside the hackathon window.
   batch-id replay protection, ungated withdrawals. **239 Foundry tests** across three decimal
   pairings.
 - The TEE matching engine — sealed-box decryption, in-enclave EIP-712 verification, a uniform-price
-  batch auction with pro-rata allocation, and settlement submission. **67 unit tests**, including a
+  batch auction with pro-rata allocation, and settlement submission. **71 unit tests**, including a
   cross-language EIP-712 fixture that locks Solidity and Python to a byte-identical signature.
 - Confidential Space deployment, attestation fetching, and on-chain anchoring.
 - The Next.js frontend, including a Verify page that recomputes the attestation hash in the browser
@@ -208,8 +215,15 @@ settlement is real on-chain FAsset movement, not a signal.
 - Clearing is XRP/**USD** while settlement is in USDT0, so the design assumes USDT0 ≈ $1.
 - The operator can censor by not running a batch. That is a liveness limitation, not a safety one,
   precisely because withdrawals are ungated.
-- The public Dark Book returns order *counts* alongside the ciphertexts, so with a single order in
-  the book the count discloses that order's side. The blobs themselves stay opaque.
+- The public Dark Book leaks order *metadata* even though contents stay opaque. The buy/sell counts
+  are published and update as orders arrive, so a poller can attribute a side to each new order
+  rather than only to a lone one. And each blob's byte length is published, which discloses the
+  order's order of magnitude — sealing adds a fixed 48-byte overhead to a JSON plaintext carrying the
+  amount as decimal digits. Padding to a fixed width before sealing closes the length channel.
+- The engine logs which address submitted which order id, and Confidential Space redirects container
+  logs to Cloud Logging, so the operator learns *who* traded and *when* — never *what*. Order
+  contents never reach a log line: the logger enforces a field allowlist and every value-bearing
+  field on the order type is `repr=False`, both covered by tests.
 - The attestation's RS256 signature is not verified in-browser; the on-chain anchor match is what we
   verify. JWKS verification is roadmap.
 - No MEV protection between the vault and external DEXes — Umbra protects the matching process, not
