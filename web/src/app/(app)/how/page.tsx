@@ -51,9 +51,19 @@ export default function HowPage() {
             FTSOv2 for fair pricing, and the vault contract for custody.
           </p>
           <p>
-            <strong>The operator cannot read your order</strong> — it is sealed to a key that only
-            exists inside the enclave — and <strong>cannot settle off-market</strong>, because the
-            price band is enforced on-chain by a contract they do not control at settlement time.
+            <strong>The operator cannot settle off-market</strong>, because the price band is
+            enforced on-chain by a contract they do not control at settlement time. That guarantee
+            is unconditional — it holds even if the entire engine is replaced with malicious code.
+          </p>
+          <p>
+            <strong>Your order is sealed to a key that only exists inside the enclave</strong>, so a
+            passive operator cannot read it. Being precise about the limit of that, because it is
+            weaker than it sounds: the attestation nonce commits to the enclave&apos;s{' '}
+            <em>signing</em> key, not to its <em>order-encryption</em> key, and the browser seals to
+            whatever key <span className="mono">/info</span> returns. An operator willing to serve a
+            substituted public key could therefore read orders. That is an active, detectable act
+            rather than a passive capability — but &ldquo;cannot read orders&rdquo; would be an
+            overstatement, so we do not make it.
           </p>
           <p className="muted">
             Being precise about what the operator <em>can</em> do: the registry owner can rotate

@@ -90,10 +90,12 @@ leaves the enclave, and whose pricing is checked by a contract it does not contr
 
 ## Demo
 
-- **Live app:** https://umbra-beta.vercel.app — the Verify page, Dark Book and settled batches are
-  read-only and work in any browser. **Placing an order needs a desktop browser with MetaMask** on
-  Coston2 (chain 114); the wallet config uses the injected connector only, with no WalletConnect QR
-  path, so mobile is read-only.
+- **Live app:** https://umbra-beta.vercel.app/app — the trading interface.
+- **What it is:** https://umbra-beta.vercel.app — the case for the product, the enforcement record
+  it is built against, and the commands to verify every claim on this page yourself.
+- The Verify page, Dark Book and settled batches are read-only and work in any browser. **Placing an
+  order needs a desktop browser with MetaMask** on Coston2 (chain 114); the wallet config uses the
+  injected connector only, with no WalletConnect QR path, so mobile is read-only.
 - **Video:** _(link to be added)_
 - **Run it yourself:**
   ```bash

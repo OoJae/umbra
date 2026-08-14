@@ -5,7 +5,7 @@ FTSOv2 fair price and settled on Flare — so large trades can't be front-run.**
 
 Built for the Flare Summer Signal hackathon. Coston2 testnet only.
 
-**Live app:** https://umbra-beta.vercel.app
+**Live app:** https://umbra-beta.vercel.app/app · **What it is:** https://umbra-beta.vercel.app
 
 ## The problem
 

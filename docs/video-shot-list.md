@@ -33,7 +33,7 @@ sealed-bid submission, all of which will open on MEV alone.
 
 ## Shot 2 — 0:20–0:50 · The sealed order
 
-**Page:** https://umbra-beta.vercel.app/ (Trade), profile 1.
+**Page:** https://umbra-beta.vercel.app/app (Trade), profile 1.
 
 1. Fill the order form — amount and the "use mid +2%" button. `QuotePreview` shows the live FTSOv2
    price and exactly what will be escrowed.
@@ -110,7 +110,8 @@ https://umbra-beta.vercel.app/settlement.
 
 | Thing | Value |
 |---|---|
-| App | https://umbra-beta.vercel.app |
+| Landing | https://umbra-beta.vercel.app |
+| Trade app | https://umbra-beta.vercel.app/app |
 | Repo | https://github.com/OoJae/umbra |
 | UmbraVault | `0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10` |
 | TeeRegistry | `0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4` |

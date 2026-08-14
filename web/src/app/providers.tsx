@@ -16,7 +16,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={darkTheme({ accentColor: '#7C5CFF', borderRadius: 'small' })}>
+        {/* Bone on void, matching .btn — the wallet modal is the one surface we
+            do not control with CSS variables, so the tokens are repeated here. */}
+        <RainbowKitProvider
+          theme={darkTheme({
+            accentColor: '#F2EEE8',
+            accentColorForeground: '#06070B',
+            borderRadius: 'small',
+          })}
+        >
           {children}
         </RainbowKitProvider>
       </QueryClientProvider>
