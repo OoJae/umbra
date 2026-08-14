@@ -18,7 +18,7 @@
 - voiceover: VO 13 + VO 14
 - blueprint: dataviz-countup
 - asset_candidates: 08-settled-result.png
-- pin: 9.9s — the deviation counter must land on 0 here — the word "zero" (abs 112.51s)
+- pin: 10.08s — the deviation counter must land on 0 here — the word "zero" (abs 112.51s)
 - vo_marks: VO 13 0.0–10.4s · VO 14 10.4–16.8s   (frame-relative, from the recorded read)
 - poster: 8
 

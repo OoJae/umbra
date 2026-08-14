@@ -46,3 +46,9 @@ demo/videos/*/capture/
 demo/videos/*/renders/
 demo/videos/*/snapshots/
 demo/videos/*/node_modules/
+
+demo/videos/*/.thumbnails/
+demo/videos/*/.hyperframes/frame-packets/
+
+demo/videos/*/snapshots/
+demo/videos/*/assets/voice/

@@ -12,7 +12,7 @@
 
 - src: compositions/frames/14-dont-trust-it.html
 - status: outline
-- duration: 9.34s
+- duration: 9.52s
 - transition_in: eclipse-wipe
 - scene: The counts, the network, the close.
 - voiceover: VO 20

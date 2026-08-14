@@ -12,7 +12,7 @@
 
 - src: compositions/frames/01-the-promise.html
 - status: outline
-- duration: 10.44s
+- duration: 10.26s
 - transition_in: cut
 - scene: A crescent resolves out of black. What a dark pool is for, and the catch.
 - voiceover: VO 01 + VO 02

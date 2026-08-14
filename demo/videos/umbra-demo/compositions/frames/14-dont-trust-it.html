@@ -1,0 +1,691 @@
+<template>
+  <style>
+    /* ── Fonts: real files shipped with the capture (no network) ───────────── */
+    @font-face {
+      font-family: "Bodoni Moda";
+      src: url("capture/assets/fonts/4f52e7e286ad48dd.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "Bodoni Moda";
+      src: url("capture/assets/fonts/7362f304958813f8.woff2") format("woff2");
+      font-weight: 400;
+      font-style: italic;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("capture/assets/fonts/d3ebbfd689654d3a-s.p.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    /* ── Root ──────────────────────────────────────────────────────────────── */
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      background: transparent;
+      font-family: "Bodoni Moda", serif;
+      color: #f2eee8;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Track 0 — the void. Everything begins and ends here. ──────────────── */
+    .f14-ground {
+      position: absolute;
+      inset: 0;
+      background: #06070b;
+    }
+
+    /* ══ Track 1 — the eclipse ════════════════════════════════════════════════
+       Stage-local geometry: the eclipse centre sits at (960px, 430px) and the
+       whole assembly (corona plate, photosphere, moon, bead, halo) rides this
+       one element, so a single translate lifts the eclipse as it opens.
+       Moon r=194 · photosphere r=191 · plate corona masked to r=355.          */
+    .f14-stage {
+      position: absolute;
+      inset: 0;
+    }
+    /* the transform rides an inner layer, never the clip element itself */
+    .f14-sky {
+      position: absolute;
+      inset: 0;
+      transform-origin: 960px 430px;
+    }
+
+    /* the extended halo — CSS light that carries on past where the captured
+       plate has to be cut, so the corona never ends on an edge */
+    .f14-glow {
+      position: absolute;
+      left: 200px;
+      top: -330px;
+      width: 1520px;
+      height: 1520px;
+      opacity: 0.09;
+      background: radial-gradient(
+        circle closest-side at 50% 50%,
+        rgba(122, 120, 119, 0) 0%,
+        rgba(122, 120, 119, 0.02) 20%,
+        rgba(122, 120, 119, 0.1) 30%,
+        rgba(122, 120, 119, 0.22) 38%,
+        rgba(122, 120, 119, 0.3) 44%,
+        rgba(122, 120, 119, 0.31) 50%,
+        rgba(118, 117, 117, 0.26) 57%,
+        rgba(104, 104, 105, 0.19) 64%,
+        rgba(84, 85, 88, 0.125) 72%,
+        rgba(58, 59, 64, 0.075) 80%,
+        rgba(32, 33, 39, 0.035) 88%,
+        rgba(14, 15, 21, 0.012) 95%,
+        rgba(6, 7, 11, 0) 100%
+      );
+    }
+
+    /* The real capture, reduced to nothing but its corona. Three nested mask
+       passes (alpha multiplies) so the captured page's type, rules and the nav
+       bar can never enter the frame:
+         1 vignette — circular falloff, 205px solid → 355px gone
+         2 hole     — the plate's own moon is cut out; a CSS moon replaces it
+         3 eraser   — kills the price column that survives passes 1–2         */
+    .f14-corona {
+      position: absolute;
+      inset: 0;
+      opacity: 0.18;
+    }
+    .f14-vig {
+      position: absolute;
+      inset: 0;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-image: radial-gradient(
+        circle 355px at 960px 430px,
+        rgba(0, 0, 0, 1) 0px,
+        rgba(0, 0, 0, 1) 205px,
+        rgba(0, 0, 0, 0.78) 240px,
+        rgba(0, 0, 0, 0.5) 280px,
+        rgba(0, 0, 0, 0.24) 320px,
+        rgba(0, 0, 0, 0) 355px
+      );
+      mask-image: radial-gradient(
+        circle 355px at 960px 430px,
+        rgba(0, 0, 0, 1) 0px,
+        rgba(0, 0, 0, 1) 205px,
+        rgba(0, 0, 0, 0.78) 240px,
+        rgba(0, 0, 0, 0.5) 280px,
+        rgba(0, 0, 0, 0.24) 320px,
+        rgba(0, 0, 0, 0) 355px
+      );
+    }
+    .f14-hole {
+      position: absolute;
+      inset: 0;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-image: radial-gradient(
+        circle 194px at 960px 430px,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 176px,
+        rgba(0, 0, 0, 0.5) 185px,
+        rgba(0, 0, 0, 1) 194px
+      );
+      mask-image: radial-gradient(
+        circle 194px at 960px 430px,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 176px,
+        rgba(0, 0, 0, 0.5) 185px,
+        rgba(0, 0, 0, 1) 194px
+      );
+    }
+    .f14-erase {
+      position: absolute;
+      inset: 0;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-image: radial-gradient(
+        ellipse 195px 235px at 1276.5px 224px,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0) 50%,
+        rgba(0, 0, 0, 0.5) 76%,
+        rgba(0, 0, 0, 1) 100%
+      );
+      mask-image: radial-gradient(
+        ellipse 195px 235px at 1276.5px 224px,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0) 50%,
+        rgba(0, 0, 0, 0.5) 76%,
+        rgba(0, 0, 0, 1) 100%
+      );
+    }
+    .f14-plate {
+      position: absolute;
+      left: -323.5px;
+      top: 9px;
+      width: 1920px;
+      height: 1080px;
+      display: block;
+      /* greyscale kills the page's red figures before the mask ever sees them;
+         the soft blur dissolves the 1px table rules that cross the corona */
+      filter: grayscale(1) blur(2.6px);
+    }
+
+    /* the photosphere — limb-brightened, so the first sliver to reappear is
+       already the brightest thing in the film */
+    .f14-photo {
+      position: absolute;
+      left: 769px;
+      top: 239px;
+      width: 382px;
+      height: 382px;
+      background: radial-gradient(
+        circle closest-side at 50% 50%,
+        rgba(255, 252, 245, 0) 0%,
+        rgba(255, 252, 245, 0) 72%,
+        rgba(255, 250, 238, 0.35) 84%,
+        rgba(255, 251, 242, 0.85) 94%,
+        rgba(255, 253, 247, 1) 98.4%,
+        rgba(255, 253, 247, 0) 100%
+      );
+    }
+
+    /* the moon. Translating it off centre is the whole third-contact move. */
+    .f14-moon {
+      position: absolute;
+      left: 766px;
+      top: 236px;
+      width: 388px;
+      height: 388px;
+      background: radial-gradient(
+        circle closest-side at 50% 50%,
+        #08090e 0%,
+        #08090e 97.4%,
+        rgba(8, 9, 14, 0) 100%
+      );
+    }
+
+    /* the bead — the diamond ring at the crescent's centre, upper-left limb */
+    .f14-bead {
+      position: absolute;
+      left: 581px;
+      top: 78px;
+      width: 460px;
+      height: 460px;
+      opacity: 0;
+      background: radial-gradient(
+        circle closest-side at 50% 50%,
+        rgba(255, 251, 240, 1) 0%,
+        rgba(255, 251, 240, 0.75) 10%,
+        rgba(255, 250, 238, 0.38) 24%,
+        rgba(255, 249, 236, 0.16) 42%,
+        rgba(255, 248, 234, 0.05) 65%,
+        rgba(255, 248, 234, 0) 100%
+      );
+    }
+
+    /* ── Track 2 — caption-band protection + a floor for the closing line ──── */
+    .f14-scrim {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(6, 7, 11, 0) 0%,
+        rgba(6, 7, 11, 0) 44%,
+        rgba(6, 7, 11, 0.3) 60%,
+        rgba(6, 7, 11, 0.66) 78%,
+        rgba(6, 7, 11, 0.9) 92%,
+        rgba(6, 7, 11, 0.97) 100%
+      );
+    }
+
+    /* ── Line-masked reveal (mask + inner; only the inner is tweened) ──────── */
+    .f14-m {
+      display: block;
+      overflow: hidden;
+    }
+    .f14-mi {
+      display: block;
+    }
+
+    /* ══ Track 3 — the three figures ═════════════════════════════════════════ */
+    .f14-figs {
+      position: absolute;
+      inset: 0;
+    }
+    .f14-col {
+      position: absolute;
+      top: 300px;
+      width: 502px;
+      height: 150px;
+    }
+    .f14-c1 {
+      left: 106px;
+    }
+    .f14-c2 {
+      left: 709px;
+    }
+    .f14-c3 {
+      left: 1312px;
+    }
+    .f14-hair {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 502px;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.2);
+      transform-origin: left center;
+    }
+    /* block, not inline-block: no baseline strut to shift the numeral off its
+       stated top. min-width per discrete-text-sequence — the widest state is
+       COSTON2 at ~385px, so no edge can jitter as states swap. */
+    .f14-val {
+      position: absolute;
+      left: 0;
+      top: 32px;
+      width: 502px;
+      min-width: 400px;
+      white-space: nowrap;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 4.375cqw;
+      line-height: 1;
+      letter-spacing: 0.055em;
+      color: #f2eee8;
+    }
+    .f14-lab {
+      position: absolute;
+      left: 0;
+      top: 128px;
+      width: 502px;
+    }
+    .f14-lab .f14-mi {
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 0.73cqw;
+      line-height: 1.5;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7b8290;
+    }
+
+    /* ══ Track 4 — the close ═════════════════════════════════════════════════
+       Each line is its own mask box with generous internal leading (Bodoni
+       overflows a tight line box); the visual leading is set by the boxes'
+       `top` values instead. Neither line carries a descender, so the boxes
+       may overlap without clipping ink.                                     */
+    .f14-close {
+      position: absolute;
+      inset: 0;
+    }
+    .f14-line {
+      position: absolute;
+      left: 0;
+      width: 1920px;
+      text-align: center;
+    }
+    .f14-l1 {
+      top: 470px;
+    }
+    .f14-l2 {
+      top: 622px;
+    }
+    .f14-line .f14-mi {
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 6.875cqw;
+      line-height: 1.42;
+      letter-spacing: -0.025em;
+      color: #f2eee8;
+    }
+    .f14-it {
+      font-style: italic;
+    }
+
+    /* ── Track 5 — the address. Quiet, lowercase, transcribable. ───────────── */
+    .f14-url {
+      position: absolute;
+      left: 0;
+      top: 830px;
+      width: 1920px;
+      text-align: center;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 0.89cqw;
+      line-height: 1.2;
+      letter-spacing: 0.24em;
+      /* bone at low alpha, not the dim token: this is the one line a viewer is
+         meant to transcribe, so it has to survive compression */
+      color: rgba(242, 238, 232, 0.58);
+    }
+    .f14-url-in {
+      display: inline-block;
+      opacity: 0;
+    }
+
+    /* ── Track 6 — the last 0.8s. The film ends on the ground colour. ──────── */
+    .f14-out {
+      position: absolute;
+      inset: 0;
+      background: #06070b;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="14-dont-trust-it" data-start="0" data-duration="9.52" data-width="1920" data-height="1080">
+    <!-- track 0 — void ground -->
+    <div class="clip f14-ground" data-start="0" data-duration="9.52" data-track-index="0"></div>
+
+    <!-- track 1 — the eclipse, at totality, waiting to open -->
+    <div class="clip f14-stage" data-start="0" data-duration="9.52" data-track-index="1">
+      <div class="f14-sky">
+        <div class="f14-glow"></div>
+        <div class="f14-corona">
+          <div class="f14-vig">
+            <div class="f14-hole">
+              <div class="f14-erase">
+                <img class="f14-plate" src="assets/02-totality.png" alt="">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="f14-photo"></div>
+        <div class="f14-moon"></div>
+        <div class="f14-bead"></div>
+      </div>
+    </div>
+
+    <!-- track 2 — scrim -->
+    <div class="clip f14-scrim" data-start="0" data-duration="9.52" data-track-index="2"></div>
+
+    <!-- track 3 — the counts and the network -->
+    <div class="clip f14-figs" data-start="0" data-duration="9.52" data-track-index="3">
+      <div class="f14-col f14-c1">
+        <div class="f14-hair"></div>
+        <span class="f14-val" id="f14-v1"></span>
+        <div class="f14-lab f14-m"><span class="f14-mi" data-layout-allow-overlap>Contract tests</span></div>
+      </div>
+      <div class="f14-col f14-c2">
+        <div class="f14-hair"></div>
+        <span class="f14-val" id="f14-v2"></span>
+        <div class="f14-lab f14-m"><span class="f14-mi" data-layout-allow-overlap>Engine tests</span></div>
+      </div>
+      <div class="f14-col f14-c3">
+        <div class="f14-hair"></div>
+        <span class="f14-val" id="f14-v3"></span>
+        <div class="f14-lab f14-m"><span class="f14-mi" data-layout-allow-overlap>Flare</span></div>
+      </div>
+    </div>
+
+    <!-- track 4 — the close -->
+    <div class="clip f14-close" data-start="0" data-duration="9.52" data-track-index="4">
+      <div class="f14-line f14-l1 f14-m"><span class="f14-mi" data-layout-allow-overlap>Don't trust it.</span></div>
+      <div class="f14-line f14-l2 f14-m"><span class="f14-mi" data-layout-allow-overlap><span class="f14-it" data-layout-allow-overlap>Check</span> it.</span></div>
+    </div>
+
+    <!-- track 5 — the address -->
+    <div class="clip f14-url" data-start="0" data-duration="9.52" data-track-index="5"><span class="f14-url-in">umbra-beta.vercel.app</span></div>
+
+    <!-- track 6 — fade to void -->
+    <div class="clip f14-out" data-start="0" data-duration="9.52" data-track-index="6"></div>
+  </div>
+
+  <script>
+    (function () {
+      /* GSAP is loaded synchronously by the host document (index.html head) */
+      var g = window.gsap;
+      window.__timelines = window.__timelines || {};
+      var tl = g.timeline({ paused: true });
+
+      /* ── helpers ─────────────────────────────────────────────────────────── */
+
+      /* line-masked reveal — the inner rises inside an overflow-hidden mask */
+      function rise(sel, at, dur, to) {
+        tl.fromTo(
+          sel,
+          { yPercent: 108, opacity: 0 },
+          {
+            yPercent: 0,
+            opacity: to === undefined ? 1 : to,
+            duration: dur,
+            ease: "power3.out"
+          },
+          at
+        );
+      }
+
+      /* hairline draws itself, left origin */
+      function draw(sel, at, dur) {
+        tl.fromTo(
+          sel,
+          { scaleX: 0, transformOrigin: "left center" },
+          {
+            scaleX: 1,
+            duration: dur,
+            ease: "power3.out",
+            transformOrigin: "left center"
+          },
+          at
+        );
+      }
+
+      /* discrete-text-sequence — whole text states swapped at thresholds and
+         reverse-searched every frame. Driven through `modifiers`, never
+         onUpdate: the renderer seeks frame-by-frame and seek() suppresses
+         callbacks, but modifiers run on every render, forward or backward. */
+      function typeOn(id, seq, at, dur) {
+        var el = null;
+        var driver = { t: 0 };
+        tl.to(
+          driver,
+          {
+            t: dur,
+            duration: dur,
+            ease: "none",
+            modifiers: {
+              t: function (v) {
+                var time = Number(v);
+                var s = "";
+                for (var i = seq.length - 1; i >= 0; i--) {
+                  if (time >= seq[i].t) {
+                    s = seq[i].text;
+                    break;
+                  }
+                }
+                if (!el) el = document.getElementById(id);
+                if (el) el.textContent = s;
+                return time;
+              }
+            }
+          },
+          at
+        );
+      }
+
+      /* ══ Scene 1 (0.00–3.50) — three figures, each landing on its word ═════
+         VO 20 word marks, frame-relative: "239" 0.00 · "contract" 1.18 ·
+         "71" 1.97 · "engine" 2.45 · "Live on" 3.50 · "Flare" 4.26 ·
+         "Coston 2" 4.46–5.50. The counts land on the syllable, not the cut. */
+
+      draw(".f14-c1 .f14-hair", 0, 0.62);
+      typeOn(
+        "f14-v1",
+        [
+          { t: 0.0, text: "" },
+          { t: 0.02, text: "2" },
+          { t: 0.11, text: "23" },
+          { t: 0.2, text: "239" }
+        ],
+        0.02,
+        0.32
+      );
+      rise(".f14-c1 .f14-lab .f14-mi", 1.18, 0.55);
+
+      draw(".f14-c2 .f14-hair", 1.97, 0.62);
+      typeOn(
+        "f14-v2",
+        [
+          { t: 0.0, text: "" },
+          { t: 0.02, text: "7" },
+          { t: 0.12, text: "71" }
+        ],
+        1.99,
+        0.26
+      );
+      rise(".f14-c2 .f14-lab .f14-mi", 2.45, 0.55);
+
+      draw(".f14-c3 .f14-hair", 3.52, 0.62);
+
+      /* ══ Scene 2 (3.55–6.60) — THE ECLIPSE OPENS ══════════════════════════
+         Third contact: the corona comes up, the moon walks off centre, and a
+         bead of photosphere swells into a crescent. The film opened in the
+         shadow; it closes as the light comes back. One camera move — the whole
+         assembly lifts and eases up 166px, and keeps drifting to the end so
+         the shot never freezes. */
+
+      tl.fromTo(
+        ".f14-corona",
+        { opacity: 0.18 },
+        { opacity: 0.8, duration: 3.0, ease: "power2.out" },
+        3.55
+      );
+      tl.fromTo(
+        ".f14-glow",
+        { opacity: 0.09 },
+        { opacity: 0.38, duration: 3.2, ease: "power2.out" },
+        3.55
+      );
+      tl.fromTo(
+        ".f14-sky",
+        { y: 0, transformOrigin: "960px 430px" },
+        {
+          y: -166,
+          duration: 3.05,
+          ease: "power2.out",
+          transformOrigin: "960px 430px"
+        },
+        3.55
+      );
+      tl.fromTo(
+        ".f14-sky",
+        { scale: 1, transformOrigin: "960px 430px" },
+        {
+          scale: 1.03,
+          duration: 5.97,
+          ease: "none",
+          transformOrigin: "960px 430px"
+        },
+        3.55
+      );
+
+      /* the moon walks off the sun — the crescent opens on the upper-left limb */
+      tl.fromTo(
+        ".f14-moon",
+        { x: 0, y: 0 },
+        { x: 22, y: 18, duration: 2.4, ease: "none" },
+        4.05
+      );
+
+      /* the diamond ring blooms, then settles under the widening crescent */
+      tl.fromTo(
+        ".f14-bead",
+        { opacity: 0, scale: 0.45 },
+        { opacity: 0.5, scale: 1, duration: 1.1, ease: "expo.out" },
+        4.05
+      );
+      tl.fromTo(
+        ".f14-bead",
+        { opacity: 0.5 },
+        {
+          opacity: 0.3,
+          duration: 1.4,
+          ease: "power2.inOut",
+          immediateRender: false
+        },
+        6.0
+      );
+
+      /* "…live on Flare Coston 2" — the third figure completes inside the open */
+      rise(".f14-c3 .f14-lab .f14-mi", 4.26, 0.55);
+      typeOn(
+        "f14-v3",
+        [
+          { t: 0.0, text: "" },
+          { t: 0.02, text: "C" },
+          { t: 0.07, text: "CO" },
+          { t: 0.12, text: "COS" },
+          { t: 0.17, text: "COST" },
+          { t: 0.22, text: "COSTO" },
+          { t: 0.27, text: "COSTON" },
+          { t: 0.36, text: "COSTON2" }
+        ],
+        4.5,
+        0.44
+      );
+
+      /* ══ Scene 3 (5.52–7.74) — the close, on the voice ════════════════════
+         "Don't" 5.50 · "Check" 6.80. The figures hand off to the statement:
+         one crossfade, no second development phase. (Final frame — a fade
+         out here is a card handoff, not a truncated exit.) */
+
+      rise(".f14-l1 .f14-mi", 5.52, 0.78);
+      tl.fromTo(
+        ".f14-col",
+        { opacity: 1 },
+        {
+          opacity: 0,
+          duration: 0.8,
+          ease: "power2.inOut",
+          stagger: 0.06,
+          immediateRender: false
+        },
+        5.55
+      );
+      rise(".f14-l2 .f14-mi", 6.82, 0.78);
+
+      /* the drift carries on under the hold. immediateRender:false — otherwise
+         this fromTo stamps y:-166 at build time and the eclipse starts lifted. */
+      tl.fromTo(
+        ".f14-sky",
+        { y: -166, transformOrigin: "960px 430px" },
+        {
+          y: -184,
+          duration: 2.92,
+          ease: "none",
+          transformOrigin: "960px 430px",
+          immediateRender: false
+        },
+        6.6
+      );
+
+      /* ══ Scene 4 (7.85–9.52) — the address, then the dark ═════════════════
+         The voice ended at 7.74. The address arrives in the silence, holds,
+         and the whole frame settles into the ground colour. No logo, no
+         button — the last thing on screen is the void. */
+
+      tl.fromTo(
+        ".f14-url-in",
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" },
+        7.85
+      );
+
+      tl.fromTo(
+        ".f14-out",
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.8,
+          ease: "power2.inOut",
+          immediateRender: false
+        },
+        8.72
+      );
+
+      window.__timelines["14-dont-trust-it"] = tl;
+    })();
+  </script>
+</template>

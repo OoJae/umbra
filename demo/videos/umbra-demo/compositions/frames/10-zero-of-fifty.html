@@ -1,0 +1,768 @@
+<template>
+  <style>
+    /* ---------- fonts (local files, project-root relative) ---------- */
+    @font-face {
+      font-family: "Bodoni Moda";
+      font-style: normal;
+      font-weight: 400;
+      font-display: block;
+      src: url("capture/assets/fonts/4f52e7e286ad48dd.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      font-style: normal;
+      font-weight: 400;
+      font-display: block;
+      src: url("capture/assets/fonts/d3ebbfd689654d3a-s.p.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      font-style: normal;
+      font-weight: 500;
+      font-display: block;
+      src: url("capture/assets/fonts/d3ebbfd689654d3a-s.p.woff2") format("woff2");
+    }
+
+    /* ---------- root ---------- */
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      color: #f2eee8;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 400;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- full-bleed ground (clip layer, never #root) ---------- */
+    #f10-zof-ground {
+      position: absolute;
+      inset: 0;
+      background: #06070b;
+    }
+
+    /* ---------- the real captured page, ghosted behind everything ---------- */
+    #f10-zof-page {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #f10-zof-page-img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      display: block;
+      /* framed on the page's nav + TEE attestation strip, so the ghost never
+         double-prints the figures this frame animates */
+      transform-origin: 1352px 40px;
+    }
+    #f10-zof-scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(6, 7, 11, 0.935);
+    }
+
+    /* ---------- authored stage ---------- */
+    #f10-zof-stage {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* chrome */
+    .f10-zof-mono {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7b8290;
+    }
+    /* real on-chain hex is never case-folded — it is quoted verbatim */
+    .f10-zof-hex {
+      text-transform: none;
+      letter-spacing: 0.05em;
+      color: #6d7480;
+    }
+    #f10-zof-chrome-l {
+      position: absolute;
+      left: 106px;
+      top: 74px;
+      font-size: 15px;
+      line-height: 1;
+    }
+    #f10-zof-chrome-r {
+      position: absolute;
+      right: 106px;
+      top: 74px;
+      font-size: 15px;
+      line-height: 1;
+      text-align: right;
+    }
+
+    /* hairlines */
+    .f10-zof-rule {
+      position: absolute;
+      height: 1px;
+      background: #1c202a;
+      transform-origin: left center;
+    }
+    #f10-zof-rule-top {
+      left: 106px;
+      top: 112px;
+      width: 1708px;
+    }
+    #f10-zof-rule-mid {
+      left: 106px;
+      top: 288px;
+      width: 1708px;
+    }
+    #f10-zof-rule-fills {
+      left: 106px;
+      top: 764px;
+      width: 1708px;
+    }
+    #f10-zof-divider {
+      position: absolute;
+      left: 1180px;
+      top: 316px;
+      width: 1px;
+      height: 288px;
+      background: #1c202a;
+      transform-origin: center top;
+    }
+
+    /* header */
+    #f10-zof-header {
+      position: absolute;
+      left: 106px;
+      top: 168px;
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 68px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: #f2eee8;
+      text-transform: lowercase;
+    }
+    #f10-zof-digest {
+      position: absolute;
+      right: 106px;
+      top: 190px;
+      font-size: 15px;
+      line-height: 1;
+      text-align: right;
+    }
+
+    /* metric labels */
+    .f10-zof-lbl {
+      position: absolute;
+      top: 322px;
+      font-size: 15px;
+      line-height: 1;
+    }
+    #f10-zof-lbl-cleared {
+      left: 106px;
+    }
+    #f10-zof-lbl-oracle {
+      left: 648px;
+    }
+    #f10-zof-lbl-dev {
+      left: 1216px;
+      width: 598px;
+      text-align: center;
+    }
+
+    /* price columns */
+    .f10-zof-valwrap {
+      position: absolute;
+      top: 356px;
+      display: inline-flex;
+      align-items: flex-end;
+      min-width: 360px;
+      white-space: nowrap;
+    }
+    #f10-zof-wrap-a {
+      left: 106px;
+    }
+    #f10-zof-wrap-b {
+      left: 648px;
+    }
+    .f10-zof-val {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 400;
+      font-size: 62px;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      color: #f2eee8;
+      font-variant-numeric: tabular-nums;
+    }
+    .f10-zof-cur {
+      display: inline-block;
+      width: 15px;
+      height: 40px;
+      margin-left: 8px;
+      margin-bottom: 12px;
+      background: #4e5768;
+    }
+
+    /* deviation hero */
+    /* Shifted 60px (half a tabular digit) left of the label column so the LANDED
+       "0 bps" — the state that holds for the last 7s — sits optically centred at
+       x 1515, the same axis as DEVIATION / BAND IS 50 BPS. */
+    #f10-zof-dev {
+      position: absolute;
+      left: 1156px;
+      top: 340px;
+      width: 598px;
+    }
+    #f10-zof-lockup {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 28px;
+      color: #f2eee8;
+      /* pivot on the landed figure, not the odometer box */
+      transform-origin: 280px center;
+    }
+    /* 242px = exactly two tabular Bodoni digits at 224px; right-aligned so the
+       digits unwind leftward and the gap to "bps" never changes. */
+    #f10-zof-num {
+      display: inline-block;
+      width: 242px;
+      text-align: right;
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 224px;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums lining-nums;
+    }
+    #f10-zof-unit {
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 106px;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    #f10-zof-devsub {
+      position: absolute;
+      left: 1216px;
+      top: 596px;
+      width: 598px;
+      text-align: center;
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    /* band gauge */
+    #f10-zof-track {
+      position: absolute;
+      left: 106px;
+      top: 648px;
+      width: 1708px;
+      height: 1px;
+      background: #262b36;
+      transform-origin: center center;
+    }
+    .f10-zof-tick {
+      position: absolute;
+      width: 1px;
+      background: #3a4150;
+    }
+    #f10-zof-tick-l {
+      left: 106px;
+      top: 638px;
+      height: 21px;
+    }
+    #f10-zof-tick-r {
+      left: 1813px;
+      top: 638px;
+      height: 21px;
+    }
+    #f10-zof-tick-c {
+      left: 959px;
+      top: 632px;
+      height: 33px;
+      background: #4e5768;
+    }
+    .f10-zof-glab {
+      position: absolute;
+      top: 682px;
+      font-size: 14px;
+      line-height: 1;
+    }
+    #f10-zof-glab-l {
+      left: 106px;
+    }
+    #f10-zof-glab-r {
+      right: 106px;
+      text-align: right;
+    }
+    #f10-zof-glab-c {
+      left: 860px;
+      width: 200px;
+      text-align: center;
+      color: #9aa1ad;
+    }
+    #f10-zof-marker {
+      position: absolute;
+      left: 958px;
+      top: 624px;
+      width: 4px;
+      height: 49px;
+      background: #f2eee8;
+    }
+
+    /* fills */
+    #f10-zof-lbl-fills {
+      position: absolute;
+      left: 106px;
+      top: 794px;
+      font-size: 15px;
+      line-height: 1;
+    }
+    #f10-zof-fillrow {
+      position: absolute;
+      left: 106px;
+      top: 820px;
+      display: flex;
+      align-items: baseline;
+      gap: 22px;
+      white-space: nowrap;
+    }
+    .f10-zof-fillgrp {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+    .f10-zof-fillnum {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 400;
+      font-size: 46px;
+      line-height: 1.15;
+      color: #f2eee8;
+      font-variant-numeric: tabular-nums;
+    }
+    .f10-zof-filltick {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 500;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: 0.12em;
+      color: #7b8290;
+    }
+    #f10-zof-swap {
+      color: #7b8290;
+      align-self: center;
+      margin-bottom: 4px;
+    }
+    #f10-zof-receipt {
+      position: absolute;
+      right: 106px;
+      top: 806px;
+      font-size: 14px;
+      line-height: 1.95;
+      text-align: right;
+    }
+  </style>
+
+  <div data-hf-id="hf-7hcn" id="root" data-composition-id="10-zero-of-fifty" data-duration="17.4" data-width="1920" data-height="1080">
+    <!-- ground -->
+    <div data-hf-id="hf-ewxy" id="f10-zof-ground" class="clip" data-start="0" data-duration="17.4" data-track-index="0"></div>
+
+    <!-- the real captured settlement page, ghosted -->
+    <div data-hf-id="hf-vquf" id="f10-zof-page" class="clip" data-start="0" data-duration="17.4" data-track-index="1">
+      <img data-hf-id="hf-cvxe" id="f10-zof-page-img" src="assets/08-settled-result.png" alt="">
+      <div data-hf-id="hf-dyc9" id="f10-zof-scrim"></div>
+    </div>
+
+    <!-- authored stage -->
+    <div data-hf-id="hf-s7hd" id="f10-zof-stage" class="clip" data-start="0" data-duration="17.4" data-track-index="2">
+      <div data-hf-id="hf-ps2t" id="f10-zof-chrome-l" class="f10-zof-mono">Umbra · Settlement</div>
+      <div data-hf-id="hf-hsh5" id="f10-zof-chrome-r" class="f10-zof-mono">Coston2 testnet</div>
+      <div data-hf-id="hf-khm8" id="f10-zof-rule-top" class="f10-zof-rule"></div>
+
+      <div data-hf-id="hf-xzus" id="f10-zof-header">batch #11 settled</div>
+      <div data-hf-id="hf-1bnj" id="f10-zof-digest" class="f10-zof-mono">
+        batch digest <span data-hf-id="hf-inro" class="f10-zof-hex">0x3b7acee521…bbe2e7c8</span>
+      </div>
+
+      <div data-hf-id="hf-545n" id="f10-zof-rule-mid" class="f10-zof-rule"></div>
+      <div data-hf-id="hf-mje4" id="f10-zof-divider"></div>
+
+      <div data-hf-id="hf-f38j" id="f10-zof-lbl-cleared" class="f10-zof-lbl f10-zof-mono">Cleared at</div>
+      <div data-hf-id="hf-ug7p" id="f10-zof-wrap-a" class="f10-zof-valwrap">
+        <span data-hf-id="hf-w5m3" id="f10-zof-val-a" class="f10-zof-val"></span><span data-hf-id="hf-bf7h" id="f10-zof-cur-a" class="f10-zof-cur"></span>
+      </div>
+
+      <div data-hf-id="hf-y94z" id="f10-zof-lbl-oracle" class="f10-zof-lbl f10-zof-mono">Oracle read on-chain</div>
+      <div data-hf-id="hf-yebq" id="f10-zof-wrap-b" class="f10-zof-valwrap">
+        <span data-hf-id="hf-la4g" id="f10-zof-val-b" class="f10-zof-val"></span><span data-hf-id="hf-fdbi" id="f10-zof-cur-b" class="f10-zof-cur"></span>
+      </div>
+
+      <div data-hf-id="hf-zkxy" id="f10-zof-lbl-dev" class="f10-zof-lbl f10-zof-mono">Deviation</div>
+      <div data-hf-id="hf-0cmi" id="f10-zof-dev">
+        <div data-hf-id="hf-l65j" id="f10-zof-lockup">
+          <span data-hf-id="hf-sbsv" id="f10-zof-num" data-layout-allow-overlap>50</span><span data-hf-id="hf-g4qj" id="f10-zof-unit">bps</span>
+        </div>
+      </div>
+      <div data-hf-id="hf-mexz" id="f10-zof-devsub" class="f10-zof-mono" data-layout-allow-overlap>band is 50 bps</div>
+
+      <div data-hf-id="hf-2rvu" id="f10-zof-track"></div>
+      <div data-hf-id="hf-6o8t" id="f10-zof-tick-l" class="f10-zof-tick"></div>
+      <div data-hf-id="hf-gvk2" id="f10-zof-tick-c" class="f10-zof-tick"></div>
+      <div data-hf-id="hf-3ov7" id="f10-zof-tick-r" class="f10-zof-tick"></div>
+      <div data-hf-id="hf-s0hp" id="f10-zof-glab-l" class="f10-zof-glab f10-zof-mono">-50 bps</div>
+      <div data-hf-id="hf-pdd9" id="f10-zof-glab-c" class="f10-zof-glab f10-zof-mono">0</div>
+      <div data-hf-id="hf-db9p" id="f10-zof-glab-r" class="f10-zof-glab f10-zof-mono">+50 bps</div>
+      <div data-hf-id="hf-1tw7" id="f10-zof-marker"></div>
+
+      <div data-hf-id="hf-almf" id="f10-zof-rule-fills" class="f10-zof-rule"></div>
+      <div data-hf-id="hf-g4du" id="f10-zof-lbl-fills" class="f10-zof-mono">Fills · 1</div>
+      <div data-hf-id="hf-e2d2" id="f10-zof-fillrow">
+        <span data-hf-id="hf-cr7k" id="f10-zof-fill-a" class="f10-zof-fillgrp">
+          <span data-hf-id="hf-e1cy" class="f10-zof-fillnum">2.000000</span>
+          <span data-hf-id="hf-quc5" class="f10-zof-filltick">FXRP</span>
+        </span>
+        <svg data-hf-id="hf-77hk" id="f10-zof-swap" width="46" height="28" viewBox="0 0 46 28" aria-hidden="true">
+          <path data-hf-id="hf-dvsk" d="M3 9.5 H40 M33.5 3 L40 9.5 L33.5 16" fill="none" stroke="currentColor" stroke-width="1.7" />
+          <path data-hf-id="hf-2qko" d="M43 20.5 H6 M12.5 14 L6 20.5 L12.5 27" fill="none" stroke="currentColor" stroke-width="1.7" />
+        </svg>
+        <span data-hf-id="hf-lf3f" id="f10-zof-fill-b" class="f10-zof-fillgrp">
+          <span data-hf-id="hf-3b1u" class="f10-zof-fillnum">2.003210</span>
+          <span data-hf-id="hf-chpb" class="f10-zof-filltick">USDT0</span>
+        </span>
+      </div>
+      <div data-hf-id="hf-eim3" id="f10-zof-receipt" class="f10-zof-mono">
+        tx <span data-hf-id="hf-6r3y" class="f10-zof-hex">0xbc37c1d9a3…27fbf632</span><br data-hf-id="hf-x5px">block 34045150 ·
+        gas used 161,164 · TEE signer
+        <span data-hf-id="hf-htke" class="f10-zof-hex">0x1d9C5a79…3d1913</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var FRAME = "10-zero-of-fifty";
+      var q = function (sel) {
+        return document.querySelector(sel);
+      };
+
+      var BONE = "#F2EEE8";
+      var CHROMO = "#E8442A";
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      /* ================================================================
+       * PIN — the narrator says "zero" at 10.08s. The counter lands there.
+       *
+       * Was 9.9s. Every frame boundary moved 0.18s earlier when a pre-roll was
+       * added to stop each stem clipping its own first consonant, so the word
+       * sits 0.18s later inside this frame than it did when this was built.
+       * C0 moves with it, keeping the tuned 3.95s curve intact.
+       * ================================================================ */
+      var C0 = 6.13; // count begins
+      var PIN = 10.08; // count lands on 0 — locked to the spoken word
+      var CSPAN = PIN - C0; // 3.95s
+      var SPLIT = 0.45; // fast fall -> readable descent
+      var MID = 14; // value at the hand-off
+      var TOP = 50; // the band edge
+
+      // Monotone, deterministic. Reaches 0 ONLY at u === 1 (t === PIN);
+      // clamped to >= 1 before that so "0" cannot appear early.
+      function devDisplay(u) {
+        if (u <= 0) return TOP;
+        if (u >= 0.9995) return 0;
+        var v;
+        if (u < SPLIT) {
+          var a = u / SPLIT; // power2.out — 50 -> 14, decelerating
+          v = TOP - (TOP - MID) * (1 - (1 - a) * (1 - a));
+        } else {
+          var b = (u - SPLIT) / (1 - SPLIT); // gentle deceleration, 14 -> ~0
+          v = MID * Math.pow(1 - b, 1.35);
+        }
+        var n = Math.round(v);
+        return n < 1 ? 1 : n;
+      }
+
+      /* ---------- ground + the real page (slow push underneath) ---------- */
+      tl.fromTo(
+        q("#f10-zof-page"),
+        { opacity: 0 },
+        { opacity: 1, duration: 0.5, ease: "power2.out" },
+        0,
+      );
+      tl.fromTo(
+        q("#f10-zof-page-img"),
+        { scale: 3.74 },
+        { scale: 4.02, duration: 16.8, ease: "none" },
+        0,
+      );
+
+      /* ================= Scene 1 (0.0-1.4) — the card wipes up ================= */
+      tl.fromTo(
+        [q("#f10-zof-chrome-l"), q("#f10-zof-chrome-r")],
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power2.out", stagger: 0.08 },
+        0.12,
+      );
+      tl.fromTo(
+        q("#f10-zof-rule-top"),
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.8, ease: "expo.out" },
+        0.2,
+      );
+      tl.fromTo(
+        q("#f10-zof-header"),
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, duration: 1.05, ease: "expo.out" },
+        0.26,
+      );
+      tl.fromTo(
+        q("#f10-zof-digest"),
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" },
+        0.72,
+      );
+      tl.fromTo(
+        q("#f10-zof-rule-mid"),
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.9, ease: "expo.out" },
+        1.05,
+      );
+
+      /* ====== Scene 2 (1.4-5.7) — the two prices read out, 400ms apart ====== */
+      // discrete-text-sequence: sparse states, reverse search, blinking block cursor
+      function sequence(valSel, curSel, states, at, total, doneAt) {
+        var valEl = q(valSel);
+        var curEl = q(curSel);
+        var d = { t: 0 };
+        tl.to(
+          d,
+          {
+            t: total,
+            duration: total,
+            ease: "none",
+            onUpdate: function () {
+              var time = d.t;
+              var s = "";
+              for (var i = states.length - 1; i >= 0; i--) {
+                if (time >= states[i].t) {
+                  s = states[i].text;
+                  break;
+                }
+              }
+              valEl.textContent = s;
+              curEl.style.opacity =
+                time >= doneAt ? "0" : Math.sin((time / 0.62) * Math.PI * 2) > 0 ? "1" : "0";
+            },
+          },
+          at,
+        );
+      }
+
+      var SEQ_A = [
+        { t: 0.0, text: "" },
+        { t: 0.14, text: "$" },
+        { t: 0.26, text: "$1" },
+        { t: 0.34, text: "$1." },
+        { t: 0.45, text: "$1.0" },
+        { t: 0.55, text: "$1.00" },
+        { t: 0.66, text: "$1.001" },
+        { t: 1.0, text: "$1.0016" },
+        { t: 1.14, text: "$1.00160" },
+        { t: 1.3, text: "$1.001605" },
+      ];
+      var SEQ_B = [
+        { t: 0.0, text: "" },
+        { t: 0.12, text: "$" },
+        { t: 0.23, text: "$1" },
+        { t: 0.33, text: "$1." },
+        { t: 0.42, text: "$1.0" },
+        { t: 0.58, text: "$1.00" },
+        { t: 0.69, text: "$1.001" },
+        { t: 1.04, text: "$1.0016" },
+        { t: 1.17, text: "$1.00160" },
+        { t: 1.34, text: "$1.001603" },
+      ];
+
+      tl.fromTo(
+        q("#f10-zof-lbl-cleared"),
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
+        1.45,
+      );
+      tl.fromTo(
+        q("#f10-zof-wrap-a"),
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        1.62,
+      );
+      sequence("#f10-zof-val-a", "#f10-zof-cur-a", SEQ_A, 1.62, 2.3, 1.3);
+
+      tl.fromTo(
+        q("#f10-zof-lbl-oracle"),
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
+        1.85,
+      );
+      tl.fromTo(
+        q("#f10-zof-wrap-b"),
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        2.02,
+      );
+      sequence("#f10-zof-val-b", "#f10-zof-cur-b", SEQ_B, 2.02, 2.3, 1.34);
+
+      /* the third column opens */
+      tl.fromTo(
+        q("#f10-zof-divider"),
+        { scaleY: 0 },
+        { scaleY: 1, duration: 0.85, ease: "expo.out" },
+        4.15,
+      );
+      tl.fromTo(
+        q("#f10-zof-lbl-dev"),
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        4.45,
+      );
+
+      /* ============= Scene 3 (5.7-9.9) — counting-dynamic-scale ============= */
+      var lockup = q("#f10-zof-lockup");
+      var numEl = q("#f10-zof-num");
+
+      tl.fromTo(
+        lockup,
+        { opacity: 0, y: 26 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" },
+        5.3,
+      );
+      // transform scale grows with the value (rule) and overshoots to 1.08
+      tl.fromTo(
+        lockup,
+        { scale: 0.58 },
+        { scale: 1.08, duration: PIN - 5.3, ease: "power2.out" },
+        5.3,
+      );
+      tl.fromTo(
+        q("#f10-zof-devsub"),
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" },
+        5.62,
+      );
+
+      // the count itself — value text only, O(1) per frame, no style writes
+      var drv = { p: 0 };
+      tl.to(
+        drv,
+        {
+          p: 1,
+          duration: CSPAN,
+          ease: "none",
+          onUpdate: function () {
+            numEl.textContent = String(devDisplay(drv.p));
+          },
+        },
+        C0,
+      );
+
+      /* --- 9.9s: the word "zero". The figure lands, settles, and ignites. --- */
+      tl.fromTo(
+        lockup,
+        { scale: 1.08 },
+        { scale: 1.0, duration: 0.55, ease: "expo.out", immediateRender: false },
+        PIN,
+      );
+      tl.fromTo(
+        lockup,
+        { color: BONE },
+        { color: CHROMO, duration: 0.3, ease: "power2.out", immediateRender: false },
+        PIN,
+      );
+      tl.fromTo(
+        q("#f10-zof-devsub"),
+        { color: "#7B8290" },
+        { color: "#9AA1AD", duration: 0.5, ease: "power2.out", immediateRender: false },
+        PIN,
+      );
+
+      /* ====== Scene 4 (10.0-12.9) — the band as a hairline gauge ====== */
+      tl.fromTo(
+        q("#f10-zof-track"),
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.85, ease: "expo.out" },
+        10.28,
+      );
+      tl.fromTo(
+        [q("#f10-zof-tick-l"), q("#f10-zof-tick-r"), q("#f10-zof-glab-l"), q("#f10-zof-glab-r")],
+        { opacity: 0 },
+        { opacity: 1, duration: 0.5, ease: "power2.out", stagger: 0.06 },
+        10.6,
+      );
+      tl.fromTo(
+        q("#f10-zof-marker"),
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out" },
+        10.96,
+      );
+      // marker slides from the +50 edge to dead centre (x = 960), 0.8s, then holds
+      tl.fromTo(
+        q("#f10-zof-marker"),
+        { x: 853 },
+        { x: 0, duration: 0.8, ease: "expo.out" },
+        11.26,
+      );
+      tl.fromTo(
+        [q("#f10-zof-tick-c"), q("#f10-zof-glab-c")],
+        { opacity: 0 },
+        { opacity: 1, duration: 0.5, ease: "power2.out" },
+        12.04,
+      );
+
+      /* ============ Scene 5 (12.9-16.8) — the fills ============ */
+      tl.fromTo(
+        q("#f10-zof-rule-fills"),
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.9, ease: "expo.out" },
+        13.06,
+      );
+      tl.fromTo(
+        q("#f10-zof-lbl-fills"),
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        13.36,
+      );
+      tl.fromTo(
+        q("#f10-zof-fill-a"),
+        { opacity: 0, y: 22 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" },
+        13.73,
+      );
+      tl.fromTo(
+        q("#f10-zof-swap"),
+        { opacity: 0, scale: 0.7 },
+        { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" },
+        14.1,
+      );
+      tl.fromTo(
+        q("#f10-zof-fill-b"),
+        { opacity: 0, y: 22 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" },
+        14.4,
+      );
+      tl.fromTo(
+        q("#f10-zof-receipt"),
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" },
+        15.33,
+      );
+
+      window.__timelines[FRAME] = tl;
+    })();
+  </script>
+</template>

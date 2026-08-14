@@ -1,0 +1,773 @@
+<template>
+  <style>
+    /* ── Fonts: local files shipped with the capture (no network) ───────────── */
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("capture/assets/fonts/d3ebbfd689654d3a-s.p.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    /* ── Root — styled by #root, never by a class ───────────────────────────── */
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      background: transparent;
+      font-family: "IBM Plex Mono", monospace;
+      color: #f2eee8;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Ground / plate / scrim — full-bleed lives on .clip layers ──────────── */
+    .f07-ground {
+      position: absolute;
+      inset: 0;
+      background: #06070b;
+    }
+    .f07-plate-clip {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .f07-plate {
+      position: absolute;
+      left: -620px;
+      top: -460px;
+      width: 3840px;
+      height: 2160px;
+      opacity: 0;
+      transform-origin: 1580px 1080px;
+      filter: blur(44px) saturate(0.18) brightness(1.12);
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-image: radial-gradient(
+        circle 920px at 1580px 1080px,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.9) 28%,
+        rgba(0, 0, 0, 0.4) 62%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      mask-image: radial-gradient(
+        circle 920px at 1580px 1080px,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.9) 28%,
+        rgba(0, 0, 0, 0.4) 62%,
+        rgba(0, 0, 0, 0) 100%
+      );
+    }
+    .f07-scrim {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(
+          to bottom,
+          rgba(6, 7, 11, 0.62) 0%,
+          rgba(6, 7, 11, 0) 22%,
+          rgba(6, 7, 11, 0) 58%,
+          rgba(6, 7, 11, 0.74) 88%,
+          rgba(6, 7, 11, 0.95) 100%
+        ),
+        radial-gradient(
+          ellipse 1180px 660px at 960px 640px,
+          rgba(6, 7, 11, 0) 0%,
+          rgba(6, 7, 11, 0.34) 68%,
+          rgba(6, 7, 11, 0.74) 100%
+        );
+    }
+
+    /* ── Mono chrome ───────────────────────────────────────────────────────── */
+    .f07-mono {
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 0.72cqw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #7b8290;
+      line-height: 1.2;
+    }
+    .f07-chrome {
+      position: absolute;
+      inset: 0;
+    }
+    .f07-chrome-tl {
+      position: absolute;
+      left: 106px;
+      top: 104px;
+    }
+    .f07-chrome-tr {
+      position: absolute;
+      right: 106px;
+      top: 104px;
+      text-align: right;
+      color: rgba(123, 130, 144, 0.82);
+    }
+    .f07-chrome-bl {
+      position: absolute;
+      left: 106px;
+      top: 872px;
+      letter-spacing: 0.28em;
+      color: rgba(123, 130, 144, 0.7);
+    }
+
+    /* hairlines — every rule draws from its own origin */
+    .f07-rule {
+      position: absolute;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.13);
+      transform-origin: left center;
+    }
+    .f07-rule-a {
+      left: 106px;
+      top: 140px;
+      width: 1708px;
+    }
+    .f07-rule-b {
+      left: 106px;
+      top: 846px;
+      width: 1708px;
+    }
+    .f07-rule-c {
+      left: 141px;
+      top: 552px;
+      width: 1638px;
+      background: rgba(242, 238, 232, 0.18);
+    }
+    .f07-rule-d {
+      left: 141px;
+      top: 776px;
+      width: 1638px;
+      background: rgba(242, 238, 232, 0.18);
+    }
+
+    /* ── Left column — the three steps ─────────────────────────────────────── */
+    .f07-col-l,
+    .f07-col-r {
+      position: absolute;
+      inset: 0;
+    }
+    .f07-kicker {
+      position: absolute;
+      letter-spacing: 0.28em;
+      color: rgba(123, 130, 144, 0.92);
+    }
+    .f07-kicker-l {
+      left: 106px;
+      top: 196px;
+    }
+    .f07-kicker-r {
+      left: 1214px;
+      top: 258px;
+    }
+    .f07-hair {
+      position: absolute;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.16);
+      transform-origin: left center;
+    }
+    .f07-hl {
+      left: 106px;
+      width: 700px;
+    }
+    .f07-hr {
+      left: 1214px;
+      width: 600px;
+    }
+    .f07-y240 {
+      top: 240px;
+    }
+    .f07-y316 {
+      top: 316px;
+    }
+    .f07-y392 {
+      top: 392px;
+    }
+    .f07-y468 {
+      top: 468px;
+    }
+
+    .f07-idx {
+      position: absolute;
+      left: 106px;
+      letter-spacing: 0.2em;
+      color: rgba(123, 130, 144, 0.75);
+    }
+    .f07-step {
+      position: absolute;
+      left: 170px;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 1.36cqw;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+      color: #f2eee8;
+      white-space: nowrap;
+    }
+    .f07-mark {
+      position: absolute;
+      left: 506px;
+      width: 300px;
+      text-align: right;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 0.72cqw;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      line-height: 1.2;
+      color: #f2eee8;
+      opacity: 0;
+    }
+    .f07-r1 {
+      top: 270px;
+    }
+    .f07-r2 {
+      top: 346px;
+    }
+    .f07-r3 {
+      top: 422px;
+    }
+    .f07-s1 {
+      top: 260px;
+    }
+    .f07-s2 {
+      top: 336px;
+    }
+    .f07-s3 {
+      top: 412px;
+    }
+
+    /* ── Right column — the recipient ──────────────────────────────────────── */
+    .f07-rline {
+      position: absolute;
+      left: 1214px;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 1.05cqw;
+      letter-spacing: 0.02em;
+      line-height: 1.3;
+      color: rgba(242, 238, 232, 0.88);
+      white-space: nowrap;
+    }
+    .f07-q1 {
+      top: 306px;
+    }
+    .f07-q2 {
+      top: 350px;
+    }
+    .f07-q3 {
+      top: 394px;
+    }
+
+    /* masked line reveal — only the inner moves, inside an overflow-hidden box */
+    .f07-m {
+      display: block;
+      overflow: hidden;
+    }
+    .f07-mi {
+      display: block;
+      line-height: 1.3;
+    }
+    .f07-step .f07-mi {
+      line-height: 1.2;
+    }
+
+    /* ── The code surface ──────────────────────────────────────────────────── */
+    .f07-code {
+      position: absolute;
+      inset: 0;
+    }
+    .f07-code-label {
+      position: absolute;
+      left: 141px;
+      top: 524px;
+      letter-spacing: 0.28em;
+      color: rgba(123, 130, 144, 0.92);
+    }
+    .f07-meta {
+      position: absolute;
+      top: 794px;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 0.68cqw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      line-height: 1.3;
+      color: rgba(123, 130, 144, 0.9);
+      opacity: 0;
+    }
+    .f07-meta-l {
+      left: 141px;
+    }
+    .f07-meta-r {
+      left: 1179px;
+      width: 600px;
+      text-align: right;
+      color: rgba(123, 130, 144, 0.66);
+    }
+
+    /* one grid cell shared by base + both ghosts — pixel-identical boxes */
+    .f07-line {
+      position: absolute;
+      left: 141px;
+      width: 1638px;
+      display: grid;
+      justify-items: start;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 3.23cqw;
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: pre;
+      font-variant-ligatures: none;
+      font-feature-settings:
+        "liga" 0,
+        "calt" 0;
+      font-kerning: none;
+    }
+    .f07-l0 {
+      top: 578px;
+    }
+    .f07-l1 {
+      top: 674px;
+    }
+    .f07-base,
+    .f07-ghost {
+      grid-area: 1 / 1;
+      white-space: pre;
+    }
+    .f07-base {
+      z-index: 2;
+    }
+    .f07-ghost {
+      z-index: 1;
+      opacity: 0;
+      will-change: transform;
+      mix-blend-mode: screen;
+    }
+    .f07-warm {
+      color: #e8442a;
+    }
+    .f07-cool {
+      color: #7b8290;
+    }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="07-sealed"
+    data-start="0"
+    data-duration="8.97"
+    data-width="1920"
+    data-height="1080"
+  >
+    <!-- track 0 — void ground -->
+    <div class="clip f07-ground" data-start="0" data-duration="8.97" data-track-index="0"></div>
+
+    <!-- track 1 — the real capture, reduced to a corona of light behind the code -->
+    <div class="clip f07-plate-clip" data-start="0" data-duration="8.97" data-track-index="1">
+      <img class="f07-plate" src="assets/05-trade.png" alt="" />
+    </div>
+
+    <!-- track 2 — scrim: caption-band protection + edge vignette -->
+    <div class="clip f07-scrim" data-start="0" data-duration="8.97" data-track-index="2"></div>
+
+    <!-- track 3 — persistent chrome + the four structural hairlines -->
+    <div class="clip f07-chrome" data-start="0" data-duration="8.97" data-track-index="3">
+      <div class="f07-rule f07-rule-a"></div>
+      <div class="f07-rule f07-rule-b"></div>
+      <div class="f07-rule f07-rule-c"></div>
+      <div class="f07-rule f07-rule-d"></div>
+      <div class="f07-mono f07-chrome-tl">Sealing</div>
+      <div class="f07-mono f07-chrome-tr">Coston2 testnet</div>
+      <div class="f07-mono f07-chrome-bl">Umbra</div>
+    </div>
+
+    <!-- ══ track 4 — LEFT COLUMN: the three steps (0.0 – 2.2) ═══════════════ -->
+    <div class="clip f07-col-l" data-start="0" data-duration="8.97" data-track-index="4">
+      <div class="f07-recede">
+        <div class="f07-mono f07-kicker f07-kicker-l">In the browser</div>
+
+        <div class="f07-hair f07-hl f07-y240"></div>
+        <div class="f07-hair f07-hl f07-y316"></div>
+        <div class="f07-hair f07-hl f07-y392"></div>
+        <div class="f07-hair f07-hl f07-y468"></div>
+
+        <div class="f07-mono f07-idx f07-r1">01</div>
+        <div class="f07-step f07-s1 f07-m"><span class="f07-mi">sign EIP-712</span></div>
+
+        <div class="f07-mono f07-idx f07-r2">02</div>
+        <div class="f07-step f07-s2 f07-m"><span class="f07-mi">crypto_box_seal</span></div>
+
+        <div class="f07-mono f07-idx f07-r3">03</div>
+        <div class="f07-step f07-s3 f07-m"><span class="f07-mi">POST ciphertext</span></div>
+      </div>
+
+      <!-- state marks tick as each step actually completes -->
+      <div class="f07-mark f07-mk1 f07-r1">signed</div>
+      <div class="f07-mark f07-mk2 f07-r2">sealed</div>
+      <div class="f07-mark f07-mk3 f07-r3">sent</div>
+    </div>
+
+    <!-- ══ track 5 — RIGHT COLUMN: the recipient key (2.2 – 4.8) ════════════ -->
+    <div class="clip f07-col-r" data-start="2.2" data-duration="6.77" data-track-index="5">
+      <div class="f07-recede">
+        <div class="f07-hair f07-hr f07-y240"></div>
+        <div class="f07-hair f07-hr f07-y468"></div>
+        <div class="f07-mono f07-kicker f07-kicker-r">Recipient key</div>
+
+        <div class="f07-rline f07-q1 f07-m"><span class="f07-mi">enclave public key</span></div>
+        <div class="f07-rline f07-q2 f07-m"><span class="f07-mi">intel tdx / real tee</span></div>
+        <div class="f07-rline f07-q3 f07-m"><span class="f07-mi">anchored on flare</span></div>
+      </div>
+    </div>
+
+    <!-- ══ track 6 — THE CODE SURFACE (2.6 – 8.97) ══════════════════════════ -->
+    <div class="clip f07-code" data-start="2.6" data-duration="6.37" data-track-index="6">
+      <div class="f07-mono f07-code-label" id="f07-label">plaintext order</div>
+
+      <div class="f07-line f07-l0">
+        <span class="f07-ghost f07-warm" id="f07-w0" aria-hidden="true"></span>
+        <span class="f07-ghost f07-cool" id="f07-c0" aria-hidden="true"></span>
+        <span class="f07-base" id="f07-b0"></span>
+      </div>
+      <div class="f07-line f07-l1">
+        <span class="f07-ghost f07-warm" id="f07-w1" aria-hidden="true"></span>
+        <span class="f07-ghost f07-cool" id="f07-c1" aria-hidden="true"></span>
+        <span class="f07-base" id="f07-b1"></span>
+      </div>
+
+      <div class="f07-meta f07-meta-l">base64 / 88 chars</div>
+      <div class="f07-meta f07-meta-r">x25519 sealed box</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      /* GSAP is loaded synchronously by the host document (index.html head) */
+      var g = window.gsap;
+      window.__timelines = window.__timelines || {};
+      var tl = g.timeline({ paused: true });
+
+      var DUR = 8.97;
+
+      /* ── The two strings. 88 characters each, on the same 2 x 44 grid, so
+         every cell morphs in place. The ciphertext is the genuine sealed-box
+         body from the live system; the plaintext is the order that produced
+         it, padded into the same grid. ───────────────────────────────────── */
+      var CIPHER =
+        "z2lEITwZXZxohkSQn4ygirmLnyQGWW+5SSI8pBqB+CAx" +
+        "Sx9RWkS/+pk0sCnUVamfD2lml+WgiLjrujSZwi21oQtO";
+      var PLAIN =
+        "side   buy fxrp       amount 3.000000 fxrp  " +
+        "limit  1.023944 usd   escrow 3.071832 usdt0 ";
+
+      var COLS = 44;
+      var N = 88; /* CIPHER.length === PLAIN.length === 88 */
+      var ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+      var COL_PLAIN = "#f2eee8";
+      var COL_NOISE = "#7b8290";
+      var COL_CIPHER = "#e8442a";
+
+      /* ── Timing ───────────────────────────────────────────────────────────
+         Pinned to the recorded read (frame-relative word times):
+         0.00 "Then"  0.56 "browser"  1.05 "encrypts"  1.96 "key"
+         2.45 "exists"  3.15 "inside"  4.33 "execution"  5.00 "environment"
+         5.83 "What"  6.21 "leaves"  6.85 "machine"  8.02 "Cipher(text)"
+         The scramble resolves at 5.80 — one frame before "What leaves your
+         machine is this." ─────────────────────────────────────────────────── */
+      var CODE_IN = 2.7;
+      var SCR_START = 4.9;
+      var SCR_DUR = 0.9;
+      var SCR_END = SCR_START + SCR_DUR;
+
+      var JITTER_STEP = 0.05; /* >= one render frame — the quantization IS the texture */
+      var CELL_NOISE = 0.22; /* fraction of the scramble each cell spends as noise */
+      var MAX_SPLIT = 6; /* px — low amplitude, base always legible */
+      var SPLIT_OPACITY = 0.55;
+
+      /* ── Determinism ──────────────────────────────────────────────────────
+         Everything the scramble draws is a pure function of (timeline time,
+         cell index). Nothing is drawn from a random source, and no state carried
+         between renders — a scrub to any t recomputes the identical frame. ── */
+      function hash(n) {
+        var x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+        return x - Math.floor(x); /* 0..1, pure */
+      }
+
+      /* Fixed seeded table: when each cell starts scrambling and when it locks.
+         A left-to-right sweep with a small hashed jitter, so the noise front
+         crosses the block once and the base64 settles behind it. */
+      var LOCK = new Array(N);
+      var START = new Array(N);
+      for (var k = 0; k < N; k++) {
+        var sweep = (k / (N - 1)) * (1 - CELL_NOISE);
+        var jit = (hash(k * 7 + 3) - 0.5) * 0.09;
+        var lk = sweep + CELL_NOISE + jit;
+        if (lk > 1) lk = 1;
+        if (lk < CELL_NOISE) lk = CELL_NOISE; /* keeps START >= 0 — no cell may
+                                                 fleck the plaintext hold */
+        LOCK[k] = lk;
+        START[k] = lk - CELL_NOISE;
+      }
+
+      /* ── Build the 88 base cells (one span per character) ─────────────────── */
+      var baseEls = [document.getElementById("f07-b0"), document.getElementById("f07-b1")];
+      var ghostEls = [
+        [document.getElementById("f07-w0"), document.getElementById("f07-w1")],
+        [document.getElementById("f07-c0"), document.getElementById("f07-c1")]
+      ];
+      var labelEl = document.getElementById("f07-label");
+
+      var CELLS = [];
+      for (var i = 0; i < N; i++) {
+        var sp = document.createElement("span");
+        sp.textContent = PLAIN.charAt(i);
+        sp.style.color = COL_PLAIN;
+        sp.__ch = PLAIN.charAt(i);
+        sp.__st = 0;
+        baseEls[(i / COLS) | 0].appendChild(sp);
+        CELLS.push(sp);
+      }
+
+      /* ── The one render function. Pure in `time`. ─────────────────────────── */
+      var STATE_COLORS = [COL_PLAIN, COL_NOISE, COL_CIPHER];
+
+      function render(time) {
+        var p;
+        if (time <= SCR_START) p = 0;
+        else if (time >= SCR_END) p = 1;
+        else p = (time - SCR_START) / SCR_DUR;
+
+        var step = Math.floor(time / JITTER_STEP); /* quantized — the stutter */
+        var s0 = "";
+        var s1 = "";
+
+        for (var i = 0; i < N; i++) {
+          var st, ch;
+          if (p >= LOCK[i]) {
+            st = 2;
+            ch = CIPHER.charAt(i);
+          } else if (p > 0 && p >= START[i]) {
+            st = 1;
+            ch = ALPHA.charAt(Math.floor(hash(i * 31.7 + step * 17.3 + 1.1) * 64) % 64);
+          } else {
+            st = 0;
+            ch = PLAIN.charAt(i);
+          }
+          var el = CELLS[i];
+          if (el.__ch !== ch) {
+            el.textContent = ch;
+            el.__ch = ch;
+          }
+          if (el.__st !== st) {
+            el.style.color = STATE_COLORS[st];
+            el.__st = st;
+          }
+          if (i < COLS) s0 += ch;
+          else s1 += ch;
+        }
+
+        /* chromatic-glitch, Form A — ghosts jitter behind the base on the same
+           quantized clock. The envelope is exactly 0 at both ends of the
+           scramble, so the snap-sharp is built into the math. */
+        var amp = p > 0 && p < 1 ? Math.pow(Math.sin(Math.PI * p), 1.4) : 0;
+        for (var L = 0; L < 2; L++) {
+          var pair = ghostEls[L];
+          if (amp === 0) {
+            pair[0].style.opacity = "0";
+            pair[1].style.opacity = "0";
+            pair[0].style.transform = "translate(0px, 0px)";
+            pair[1].style.transform = "translate(0px, 0px)";
+          } else {
+            var jx = (hash(step * 13 + L * 7) * 2 - 1) * MAX_SPLIT * amp;
+            var jy = (hash(step * 29 + L * 11) * 2 - 1) * MAX_SPLIT * 0.35 * amp;
+            var tr = "translate(" + jx + "px, " + jy + "px)";
+            var op = String(SPLIT_OPACITY * amp);
+            pair[0].style.opacity = op;
+            pair[1].style.opacity = op;
+            pair[0].style.transform = tr;
+            pair[1].style.transform = tr;
+          }
+          if (pair[0].__s !== s0) {
+            pair[0].textContent = s0;
+            pair[0].__s = s0;
+          }
+          if (pair[1].__s !== s1) {
+            pair[1].textContent = s1;
+            pair[1].__s = s1;
+          }
+        }
+
+        /* in-place hard-cut text swap on the surface label */
+        var lab = p >= 1 ? "raw post body" : "plaintext order";
+        if (labelEl.__s !== lab) {
+          labelEl.textContent = lab;
+          labelEl.__s = lab;
+        }
+      }
+
+      render(CODE_IN); /* static rest state before the driver takes over */
+
+      /* ── Reveal helpers ───────────────────────────────────────────────────── */
+      function cut(sel, at, dur, to) {
+        tl.fromTo(
+          sel,
+          { opacity: 0 },
+          {
+            opacity: to === undefined ? 1 : to,
+            duration: dur,
+            ease: "none",
+            immediateRender: false
+          },
+          at
+        );
+      }
+      function rise(sel, at, dur, to) {
+        tl.fromTo(
+          sel,
+          { yPercent: 108, opacity: 0 },
+          {
+            yPercent: 0,
+            opacity: to === undefined ? 1 : to,
+            duration: dur,
+            ease: "power3.out",
+            immediateRender: false
+          },
+          at
+        );
+      }
+      function draw(sel, at, dur) {
+        tl.fromTo(
+          sel,
+          { scaleX: 0 },
+          { scaleX: 1, duration: dur, ease: "power2.out", immediateRender: false },
+          at
+        );
+      }
+
+      /* ── Initial states, stamped on the timeline rather than in CSS, so every
+         seek resolves them and every entrance below can carry
+         immediateRender: false without leaking a visible pre-state. ───────── */
+      /* the void is painted on frame 0 — a cut must never flash through it */
+      tl.set([".f07-ground", ".f07-scrim"], { opacity: 1 }, 0);
+      tl.set(".f07-plate", { opacity: 0 }, 0);
+      tl.set([".f07-chrome-tl", ".f07-chrome-tr", ".f07-chrome-bl"], { opacity: 0 }, 0);
+      tl.set([".f07-kicker-l", ".f07-kicker-r", ".f07-idx", ".f07-code-label"], { opacity: 0 }, 0);
+      tl.set([".f07-mark", ".f07-meta", ".f07-line"], { opacity: 0 }, 0);
+      tl.set(".f07-mi", { yPercent: 108, opacity: 0 }, 0);
+      tl.set([".f07-rule", ".f07-hair"], { scaleX: 0 }, 0);
+
+      /* ── 0.00 — hard cut in; the field is composed before anything lands ──── */
+      cut(".f07-plate", 0, 0.4, 0.42);
+      cut(".f07-chrome-tl", 0.03, 0.16);
+      cut(".f07-chrome-tr", 0.03, 0.16);
+      cut(".f07-chrome-bl", 0.06, 0.16);
+      draw(".f07-rule-a", 0.02, 0.7);
+      draw(".f07-rule-b", 0.05, 0.7);
+      cut(".f07-kicker-l", 0.1, 0.2);
+
+      /* macro camera: the corona opens slowly under everything for the whole shot */
+      tl.fromTo(
+        ".f07-plate",
+        { scale: 1, x: 0, y: 0 },
+        { scale: 1.06, x: -18, y: -10, duration: DUR, ease: "none" },
+        0
+      );
+
+      /* ── 0.18 / 1.02 / 1.86 — the three steps tick as the VO names them ───── */
+      draw(".f07-hl.f07-y240", 0.18, 0.45);
+      cut(".f07-r1.f07-idx", 0.24, 0.28);
+      rise(".f07-s1 .f07-mi", 0.24, 0.5);
+      cut(".f07-mk1", 0.58, 0.3, 0.62);
+
+      draw(".f07-hl.f07-y316", 1.02, 0.45);
+      cut(".f07-r2.f07-idx", 1.06, 0.28);
+      rise(".f07-s2 .f07-mi", 1.06, 0.5);
+
+      draw(".f07-hl.f07-y392", 1.86, 0.45);
+      cut(".f07-r3.f07-idx", 1.9, 0.28);
+      rise(".f07-s3 .f07-mi", 1.9, 0.5);
+
+      draw(".f07-hl.f07-y468", 2.16, 0.5);
+
+      /* ── 2.20 — "…to a key that exists only inside a Trusted Execution…" ──── */
+      draw(".f07-hr.f07-y240", 2.2, 0.5);
+      cut(".f07-kicker-r", 2.26, 0.2);
+      rise(".f07-q1 .f07-mi", 2.52, 0.5, 0.88);
+      rise(".f07-q2 .f07-mi", 3.2, 0.5, 0.88);
+      rise(".f07-q3 .f07-mi", 4.3, 0.5, 0.88);
+      draw(".f07-hr.f07-y468", 4.42, 0.5);
+
+      /* ── 1.30 / 2.70 — the code surface: framed first, then filled ────────── */
+      draw(".f07-rule-c", 1.3, 0.6);
+      cut(".f07-code-label", 2.7, 0.22);
+      tl.fromTo(
+        ".f07-line",
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.42,
+          ease: "power2.out",
+          stagger: 0.07,
+          immediateRender: false
+        },
+        2.7
+      );
+
+      /* ── THE DRIVER ───────────────────────────────────────────────────────
+         One tween carries timeline time from CODE_IN to the end of the frame
+         and hands it to render() through a `modifiers` hook rather than an
+         update callback: the renderer seeks frame-by-frame and seek()
+         suppresses callbacks, but modifiers run on every render, either way.
+         Because it spans the whole hold as well, every frame after the snap
+         is authoritatively re-written to the settled ciphertext. ──────────── */
+      var drv = { t: CODE_IN };
+      tl.fromTo(
+        drv,
+        { t: CODE_IN },
+        {
+          t: DUR,
+          duration: DUR - CODE_IN,
+          ease: "none",
+          immediateRender: false,
+          modifiers: {
+            t: function (v) {
+              var time = Number(v);
+              render(time);
+              return time;
+            }
+          }
+        },
+        CODE_IN
+      );
+
+      /* ── 4.75 — attention hands over to the code surface ──────────────────── */
+      tl.fromTo(
+        ".f07-recede",
+        { opacity: 1 },
+        { opacity: 0.45, duration: 0.55, ease: "power2.inOut", immediateRender: false },
+        4.75
+      );
+
+      /* 4.90 – 5.80 — the scramble. One second, once, then stillness. */
+
+      /* ── 5.84 — the seal has completed; the step column records it ────────── */
+      cut(".f07-mk2", 5.84, 0.3, 0.62);
+
+      /* ── 6.20 / 7.45 — the surface closes and is annotated ────────────────── */
+      draw(".f07-rule-d", 6.2, 0.55);
+      cut(".f07-meta-l", 6.24, 0.35, 1);
+      cut(".f07-meta-r", 7.45, 0.35, 1);
+
+      /* ── 8.06 — "Ciphertext." the last quiet tick; the block never moves ──── */
+      cut(".f07-mk3", 8.06, 0.3, 0.62);
+
+      window.__timelines["07-sealed"] = tl;
+    })();
+  </script>
+</template>

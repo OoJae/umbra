@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=1920, height=1080" />
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
     <style>
       * {
         margin: 0;
@@ -12,19 +12,23 @@
       }
       html,
       body {
-        margin: 0;
         width: 1920px;
         height: 1080px;
         overflow: hidden;
         background: #000;
       }
-      body {
-        font-family: "Inter", sans-serif;
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #06070B;
       }
-      code,
-      pre,
-      .monospace {
-        font-family: "JetBrains Mono", monospace;
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
       }
     </style>
   </head>
@@ -33,27 +37,279 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="176.72"
       data-width="1920"
       data-height="1080"
     >
-      
-      
+      <div
+        id="el-01-the-promise"
+        class="scene"
+        data-composition-id="01-the-promise"
+        data-composition-src="compositions/frames/01-the-promise.html"
+        data-start="0"
+        data-duration="10.86"
+        data-track-index="0"
+      ></div>
+      <audio
+        id="el-01-the-promise-voice"
+        src="assets/voice/01.wav"
+        data-start="0"
+        data-duration="10.26"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
 
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
+      <div
+        id="el-02-eight-venues"
+        class="scene"
+        data-composition-id="02-eight-venues"
+        data-composition-src="compositions/frames/02-eight-venues.html"
+        data-start="10.26"
+        data-duration="11.86"
+        data-track-index="1"
+      ></div>
+      <audio
+        id="el-02-eight-venues-voice"
+        src="assets/voice/02.wav"
+        data-start="10.26"
+        data-duration="11.86"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-03-what-they-did"
+        class="scene"
+        data-composition-id="03-what-they-did"
+        data-composition-src="compositions/frames/03-what-they-did.html"
+        data-start="22.119999999999997"
+        data-duration="15.06"
+        data-track-index="0"
+      ></div>
+      <audio
+        id="el-03-what-they-did-voice"
+        src="assets/voice/03.wav"
+        data-start="22.119999999999997"
+        data-duration="15.06"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-04-nobody-caught-it"
+        class="scene"
+        data-composition-id="04-nobody-caught-it"
+        data-composition-src="compositions/frames/04-nobody-caught-it.html"
+        data-start="37.18"
+        data-duration="19.8"
+        data-track-index="1"
+      ></div>
+      <audio
+        id="el-04-nobody-caught-it-voice"
+        src="assets/voice/04.wav"
+        data-start="37.18"
+        data-duration="19.2"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-05-what-an-umbra-is"
+        class="scene"
+        data-composition-id="05-what-an-umbra-is"
+        data-composition-src="compositions/frames/05-what-an-umbra-is.html"
+        data-start="56.379999999999995"
+        data-duration="7.79"
+        data-track-index="0"
+      ></div>
+      <audio
+        id="el-05-what-an-umbra-is-voice"
+        src="assets/voice/05.wav"
+        data-start="56.379999999999995"
+        data-duration="7.79"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-06-escrow-and-sign"
+        class="scene"
+        data-composition-id="06-escrow-and-sign"
+        data-composition-src="compositions/frames/06-escrow-and-sign.html"
+        data-start="64.17"
+        data-duration="6.69"
+        data-track-index="1"
+      ></div>
+      <audio
+        id="el-06-escrow-and-sign-voice"
+        src="assets/voice/06.wav"
+        data-start="64.17"
+        data-duration="6.69"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-07-sealed"
+        class="scene"
+        data-composition-id="07-sealed"
+        data-composition-src="compositions/frames/07-sealed.html"
+        data-start="70.86"
+        data-duration="8.97"
+        data-track-index="0"
+      ></div>
+      <audio
+        id="el-07-sealed-voice"
+        src="assets/voice/07.wav"
+        data-start="70.86"
+        data-duration="8.97"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-08-dark-book"
+        class="scene"
+        data-composition-id="08-dark-book"
+        data-composition-src="compositions/frames/08-dark-book.html"
+        data-start="79.83"
+        data-duration="13.37"
+        data-track-index="1"
+      ></div>
+      <audio
+        id="el-08-dark-book-voice"
+        src="assets/voice/08.wav"
+        data-start="79.83"
+        data-duration="13.37"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-09-the-batch"
+        class="scene"
+        data-composition-id="09-the-batch"
+        data-composition-src="compositions/frames/09-the-batch.html"
+        data-start="93.2"
+        data-duration="9.23"
+        data-track-index="0"
+      ></div>
+      <audio
+        id="el-09-the-batch-voice"
+        src="assets/voice/09.wav"
+        data-start="93.2"
+        data-duration="9.23"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-10-zero-of-fifty"
+        class="scene"
+        data-composition-id="10-zero-of-fifty"
+        data-composition-src="compositions/frames/10-zero-of-fifty.html"
+        data-start="102.43"
+        data-duration="17.4"
+        data-track-index="1"
+      ></div>
+      <audio
+        id="el-10-zero-of-fifty-voice"
+        src="assets/voice/10.wav"
+        data-start="102.43"
+        data-duration="16.8"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-11-signed-by-someone-else"
+        class="scene"
+        data-composition-id="11-signed-by-someone-else"
+        data-composition-src="compositions/frames/11-signed-by-someone-else.html"
+        data-start="119.23"
+        data-duration="18.38"
+        data-track-index="0"
+      ></div>
+      <audio
+        id="el-11-signed-by-someone-else-voice"
+        src="assets/voice/11.wav"
+        data-start="119.23"
+        data-duration="18.38"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-12-check-it-yourself"
+        class="scene"
+        data-composition-id="12-check-it-yourself"
+        data-composition-src="compositions/frames/12-check-it-yourself.html"
+        data-start="137.61"
+        data-duration="7.44"
+        data-track-index="1"
+      ></div>
+      <audio
+        id="el-12-check-it-yourself-voice"
+        src="assets/voice/12.wav"
+        data-start="137.61"
+        data-duration="7.44"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-13-what-it-cant-do"
+        class="scene"
+        data-composition-id="13-what-it-cant-do"
+        data-composition-src="compositions/frames/13-what-it-cant-do.html"
+        data-start="145.05"
+        data-duration="22.75"
+        data-track-index="0"
+      ></div>
+      <audio
+        id="el-13-what-it-cant-do-voice"
+        src="assets/voice/13.wav"
+        data-start="145.05"
+        data-duration="22.15"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
+      <div
+        id="el-14-dont-trust-it"
+        class="scene"
+        data-composition-id="14-dont-trust-it"
+        data-composition-src="compositions/frames/14-dont-trust-it.html"
+        data-start="167.20000000000002"
+        data-duration="9.52"
+        data-track-index="1"
+      ></div>
+      <audio
+        id="el-14-dont-trust-it-voice"
+        src="assets/voice/14.wav"
+        data-start="167.20000000000002"
+        data-duration="9.52"
+        data-track-index="10"
+        data-volume="1"
+      ></audio>
+
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
-      window.__timelines["main"] = tl;
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+      // ── frame transitions (injected by transitions.mjs) ──
+      (function () { var tl = window.__timelines["main"];
+        tl.to("#el-01-the-promise", { filter: "blur(10px)", scale: 1.03, opacity: 0, duration: 0.6, ease: "power2.inOut" }, 10.26);
+        tl.fromTo("#el-02-eight-venues", { filter: "blur(10px)", scale: 0.97, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.6, ease: "power2.inOut" }, 10.26);
+        tl.to("#el-04-nobody-caught-it", { filter: "blur(10px)", scale: 1.03, opacity: 0, duration: 0.6, ease: "power2.inOut" }, 56.38);
+        tl.fromTo("#el-05-what-an-umbra-is", { filter: "blur(10px)", scale: 0.97, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.6, ease: "power2.inOut" }, 56.38);
+        tl.to("#el-10-zero-of-fifty", { filter: "blur(10px)", scale: 1.03, opacity: 0, duration: 0.6, ease: "power2.inOut" }, 119.23);
+        tl.fromTo("#el-11-signed-by-someone-else", { filter: "blur(10px)", scale: 0.97, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.6, ease: "power2.inOut" }, 119.23);
+        tl.to("#el-13-what-it-cant-do", { filter: "blur(10px)", scale: 1.03, opacity: 0, duration: 0.6, ease: "power2.inOut" }, 167.2);
+        tl.fromTo("#el-14-dont-trust-it", { filter: "blur(10px)", scale: 0.97, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.6, ease: "power2.inOut" }, 167.2);
+        tl.to({}, { duration: 176.72 }, 0); // full-span anchor — main.duration() == composition total (Studio master duration)
+      })();
     </script>
   </body>
 </html>

@@ -18,7 +18,7 @@
 - voiceover: VO 15 + VO 16
 - blueprint: comparison-split
 - asset_candidates: 13-verify.png
-- pin: 17.67s — the ✓ MATCH chip must resolve here — the word "matched" (abs 137.08s)
+- pin: 17.85s — the ✓ MATCH chip must resolve here — the word "matched" (abs 137.08s)
 - vo_marks: VO 15 0.0–11.4s · VO 16 11.4–18.4s   (frame-relative, from the recorded read)
 - poster: 10
 

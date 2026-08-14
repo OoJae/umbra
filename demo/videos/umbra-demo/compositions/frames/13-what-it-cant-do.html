@@ -1,0 +1,680 @@
+<template>
+  <style>
+    /* ── Fonts: real files shipped with the capture (no network) ───────────── */
+    @font-face {
+      font-family: "Bodoni Moda";
+      src: url("capture/assets/fonts/4f52e7e286ad48dd.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "Bodoni Moda";
+      src: url("capture/assets/fonts/7362f304958813f8.woff2") format("woff2");
+      font-weight: 400;
+      font-style: italic;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "Instrument Sans";
+      src: url("capture/assets/fonts/26d0ba92e140f0dc-s.p.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("capture/assets/fonts/d3ebbfd689654d3a-s.p.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    /* ── Root ──────────────────────────────────────────────────────────────── */
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      background: transparent;
+      font-family: "Instrument Sans", sans-serif;
+      color: #f2eee8;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Ground / plate / scrim (full-bleed lives on .clip layers) ─────────── */
+    .f13-ground {
+      position: absolute;
+      inset: 0;
+      background: #06070b;
+    }
+    .f13-plate-clip {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .f13-plate {
+      position: absolute;
+      left: -1822px;
+      top: -181px;
+      width: 5000px;
+      height: 2812px;
+      opacity: 0.55;
+      transform-origin: 3542px 1081px;
+      filter: blur(26px) saturate(0.28) brightness(1.06);
+      -webkit-mask-image: radial-gradient(
+        circle 980px at 3542px 1081px,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.92) 30%,
+        rgba(0, 0, 0, 0.42) 64%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      mask-image: radial-gradient(
+        circle 980px at 3542px 1081px,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.92) 30%,
+        rgba(0, 0, 0, 0.42) 64%,
+        rgba(0, 0, 0, 0) 100%
+      );
+    }
+    .f13-scrim {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(
+          to bottom,
+          rgba(6, 7, 11, 0.6) 0%,
+          rgba(6, 7, 11, 0) 20%,
+          rgba(6, 7, 11, 0) 60%,
+          rgba(6, 7, 11, 0.84) 90%,
+          rgba(6, 7, 11, 0.96) 100%
+        ),
+        linear-gradient(
+          to right,
+          rgba(6, 7, 11, 0.94) 0%,
+          rgba(6, 7, 11, 0.74) 30%,
+          rgba(6, 7, 11, 0) 66%
+        );
+    }
+
+    /* ── Chrome ────────────────────────────────────────────────────────────── */
+    .f13-mono {
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 0.72cqw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #7b8290;
+      line-height: 1.2;
+    }
+    .f13-chrome {
+      position: absolute;
+      inset: 0;
+    }
+    .f13-rule-top,
+    .f13-rule-bot {
+      position: absolute;
+      left: 106px;
+      width: 1708px;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.14);
+      transform-origin: left center;
+    }
+    .f13-rule-top {
+      top: 140px;
+    }
+    .f13-rule-bot {
+      top: 846px;
+    }
+    .f13-chrome-l {
+      position: absolute;
+      left: 106px;
+      top: 104px;
+    }
+    .f13-chrome-b {
+      position: absolute;
+      left: 106px;
+      top: 872px;
+      letter-spacing: 0.28em;
+      color: rgba(123, 130, 144, 0.7);
+    }
+    .f13-chrome-n1,
+    .f13-chrome-n2 {
+      position: absolute;
+      right: 106px;
+      top: 104px;
+      text-align: right;
+      color: rgba(123, 130, 144, 0.85);
+    }
+
+    /* ── Masked line reveal (mask + inner; only the inner is tweened) ──────── */
+    .f13-m {
+      display: block;
+      overflow: hidden;
+    }
+    .f13-mi {
+      display: block;
+      line-height: 1.36;
+    }
+
+    /* ── Limitation groups ─────────────────────────────────────────────────── */
+    .f13-lim1,
+    .f13-lim2 {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* ── Limitation 1 — left column ────────────────────────────────────────── */
+    .f13-kicker {
+      position: absolute;
+      left: 106px;
+      top: 158px;
+    }
+    .f13-head {
+      position: absolute;
+      left: 106px;
+      top: 186px;
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 9.9cqw;
+      line-height: 0.99;
+      letter-spacing: -0.025em;
+      color: #f2eee8;
+    }
+    .f13-it {
+      font-style: italic;
+    }
+
+    /* ── Limitation 1 — column divider + right column ──────────────────────── */
+    .f13-vrule {
+      position: absolute;
+      left: 1010px;
+      top: 188px;
+      width: 1px;
+      height: 336px;
+      background: rgba(242, 238, 232, 0.13);
+      transform-origin: top center;
+    }
+    .f13-col {
+      position: absolute;
+      left: 1050px;
+      top: 200px;
+      width: 764px;
+      height: 340px;
+    }
+    .f13-collabel {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    .f13-hair {
+      position: absolute;
+      left: 0;
+      width: 764px;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.18);
+      transform-origin: left center;
+    }
+    .f13-r0 {
+      top: 40px;
+    }
+    .f13-r1 {
+      top: 148px;
+    }
+    .f13-r2 {
+      top: 256px;
+    }
+    .f13-row {
+      position: absolute;
+      left: 0;
+      width: 764px;
+      height: 84px;
+    }
+    .f13-rowA {
+      top: 56px;
+    }
+    .f13-rowB {
+      top: 164px;
+    }
+    .f13-rowname {
+      position: absolute;
+      left: 0;
+      bottom: 4px;
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 2.8cqw;
+      letter-spacing: -0.015em;
+      color: #f2eee8;
+    }
+    .f13-rowval {
+      position: absolute;
+      right: 0;
+      bottom: 22px;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 0.78cqw;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .f13-val-yes {
+      color: rgba(242, 238, 232, 0.38);
+    }
+    .f13-val-no {
+      color: #f2eee8;
+    }
+    .f13-chain {
+      position: absolute;
+      left: 0;
+      top: 292px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 1cqw;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: rgba(242, 238, 232, 0.88);
+      line-height: 1.2;
+    }
+    .f13-arrow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .f13-arrow-line {
+      display: block;
+      width: 62px;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.55);
+      transform-origin: left center;
+    }
+    .f13-arrow-head {
+      display: block;
+      width: 0;
+      height: 0;
+      border-left: 7px solid rgba(242, 238, 232, 0.55);
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+    }
+
+    /* ── Limitation 1 — lower statement band ───────────────────────────────── */
+    .f13-band-rule {
+      position: absolute;
+      left: 106px;
+      top: 604px;
+      width: 1708px;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.14);
+      transform-origin: left center;
+    }
+    .f13-passive {
+      position: absolute;
+      left: 106px;
+      top: 636px;
+    }
+    .f13-clause-wrap {
+      position: absolute;
+      left: 106px;
+      top: 666px;
+    }
+    .f13-clause {
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 4.35cqw;
+      line-height: 1.36;
+      letter-spacing: -0.02em;
+      color: #f2eee8;
+      white-space: nowrap;
+    }
+    .f13-w {
+      display: inline-block;
+      overflow: hidden;
+      vertical-align: top;
+    }
+    .f13-wi {
+      display: inline-block;
+    }
+    /* the single use of chromosphere red in this frame */
+    .f13-underline {
+      display: block;
+      width: 100%;
+      height: 4px;
+      margin-top: -20px;
+      background: #e8442a;
+      transform-origin: left center;
+    }
+    .f13-note,
+    .f13-note2 {
+      position: absolute;
+      top: 802px;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      font-size: 0.68cqw;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      line-height: 1.3;
+      color: rgba(123, 130, 144, 0.92);
+    }
+    .f13-note {
+      left: 106px;
+    }
+    .f13-note2 {
+      right: 106px;
+      text-align: right;
+      color: rgba(123, 130, 144, 0.72);
+    }
+
+    /* ── Limitation 2 — centred ────────────────────────────────────────────── */
+    .f13-w-kicker {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 180px;
+      text-align: center;
+      letter-spacing: 0.34em;
+    }
+    .f13-w-head {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 212px;
+      text-align: center;
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 10.2cqw;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: #f2eee8;
+    }
+    .f13-w-rule {
+      position: absolute;
+      left: 700px;
+      top: 464px;
+      width: 520px;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.18);
+      transform-origin: center center;
+    }
+    .f13-negs {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 504px;
+      text-align: center;
+    }
+    .f13-neg {
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-size: 2.85cqw;
+      letter-spacing: -0.015em;
+      color: #f2eee8;
+    }
+    .f13-closer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 750px;
+      text-align: center;
+      font-family: "Bodoni Moda", serif;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 2.9cqw;
+      letter-spacing: -0.01em;
+      color: #f2eee8;
+    }
+  </style>
+
+  <div data-hf-id="hf-ns8t" id="root" data-composition-id="13-what-it-cant-do" data-start="0" data-duration="22.75" data-width="1920" data-height="1080">
+    <!-- track 0 — void ground -->
+    <div data-hf-id="hf-kstw" class="clip f13-ground" data-start="0" data-duration="22.75" data-track-index="0"></div>
+
+    <!-- track 1 — the real capture, reduced to its corona: light, not screen -->
+    <div data-hf-id="hf-qwxv" class="clip f13-plate-clip" data-start="0" data-duration="22.75" data-track-index="1">
+      <img data-hf-id="hf-3vls" class="f13-plate" src="assets/04-limits.png" alt="">
+    </div>
+
+    <!-- track 2 — scrims (left wash + caption-band protection) -->
+    <div data-hf-id="hf-58qj" class="clip f13-scrim" data-start="0" data-duration="22.75" data-track-index="2"></div>
+
+    <!-- track 3 — persistent chrome -->
+    <div data-hf-id="hf-fr5c" class="clip f13-chrome" data-start="0" data-duration="22.75" data-track-index="3">
+      <div data-hf-id="hf-n8c3" class="f13-rule-top"></div>
+      <div data-hf-id="hf-yi5p" class="f13-rule-bot"></div>
+      <div data-hf-id="hf-u885" class="f13-mono f13-chrome-l">Honest limits</div>
+      <div data-hf-id="hf-dyon" class="f13-mono f13-chrome-b">Umbra</div>
+    </div>
+
+    <!-- track 4 — section numeral, hard-swapped on the cut -->
+    <div data-hf-id="hf-xikr" class="clip f13-mono f13-chrome-n1" data-start="0" data-duration="13.9" data-track-index="4">
+      Limit 01 / 02
+    </div>
+    <div data-hf-id="hf-3gz4" class="clip f13-mono f13-chrome-n2" data-start="13.9" data-duration="8.85" data-track-index="4">
+      Limit 02 / 02
+    </div>
+
+    <!-- ══ track 5 — LIMITATION ONE (VO 18, 0.0–13.9) ══════════════════════ -->
+    <div data-hf-id="hf-qtes" class="clip f13-lim1" data-start="0" data-duration="13.9" data-track-index="5">
+      <div data-hf-id="hf-rse7" class="f13-mono f13-kicker f13-recede" data-layout-allow-overlap>Stated rather than hidden</div>
+
+      <div data-hf-id="hf-wwsu" class="f13-head f13-recede" data-layout-allow-overlap>
+        <div data-hf-id="hf-2zsr">What it</div>
+        <div data-hf-id="hf-261h"><span data-hf-id="hf-nu1u" class="f13-it" data-layout-allow-overlap>can't</span> do.</div>
+      </div>
+
+      <div data-hf-id="hf-9a02" class="f13-vrule f13-recede"></div>
+
+      <div data-hf-id="hf-oix0" class="f13-col f13-recede">
+        <div data-hf-id="hf-urvh" class="f13-mono f13-collabel f13-m">
+          <span data-hf-id="hf-sskg" class="f13-mi">Attestation coverage</span>
+        </div>
+
+        <div data-hf-id="hf-5mv0" class="f13-hair f13-r0"></div>
+
+        <div data-hf-id="hf-h3k9" class="f13-row f13-rowA">
+          <div data-hf-id="hf-qplc" class="f13-rowname f13-m"><span data-hf-id="hf-oo2k" class="f13-mi">signing key</span></div>
+          <div data-hf-id="hf-yxyi" class="f13-rowval f13-val-yes">Covered</div>
+        </div>
+
+        <div data-hf-id="hf-6eit" class="f13-hair f13-r1"></div>
+
+        <div data-hf-id="hf-l1oa" class="f13-row f13-rowB">
+          <div data-hf-id="hf-ayug" class="f13-rowname f13-m"><span data-hf-id="hf-a1be" class="f13-mi">encryption key</span></div>
+          <div data-hf-id="hf-at19" class="f13-rowval f13-val-no">Not covered</div>
+        </div>
+
+        <div data-hf-id="hf-ck8m" class="f13-hair f13-r2"></div>
+
+        <div data-hf-id="hf-jgqm" class="f13-chain">
+          <span data-hf-id="hf-xad3" class="f13-chain-a f13-m"><span data-hf-id="hf-w3jj" class="f13-mi">Substituted key</span></span>
+          <span data-hf-id="hf-0ngh" class="f13-arrow">
+            <i data-hf-id="hf-oqhl" class="f13-arrow-line"></i><i data-hf-id="hf-7qn9" class="f13-arrow-head"></i>
+          </span>
+          <span data-hf-id="hf-8s30" class="f13-chain-b f13-m"><span data-hf-id="hf-ayhn" class="f13-mi">Orders readable</span></span>
+        </div>
+      </div>
+
+      <div data-hf-id="hf-cni9" class="f13-band-rule"></div>
+      <div data-hf-id="hf-vpr7" class="f13-mono f13-passive">Not a passive capability</div>
+
+      <div data-hf-id="hf-c8qp" class="f13-clause-wrap">
+        <div data-hf-id="hf-fgyk" class="f13-clause"><span data-hf-id="hf-vu9d" class="f13-w"><span data-hf-id="hf-0wo5" class="f13-wi">an</span></span>
+          <span data-hf-id="hf-xdr9" class="f13-w"><span data-hf-id="hf-rf2g" class="f13-wi">active,</span></span>
+          <span data-hf-id="hf-ykoc" class="f13-w"><span data-hf-id="hf-dnid" class="f13-wi">detectable</span></span>
+          <span data-hf-id="hf-y6db" class="f13-w"><span data-hf-id="hf-r9b2" class="f13-wi">act</span></span></div>
+        <i data-hf-id="hf-e0cd" class="f13-underline"></i>
+      </div>
+
+      <div data-hf-id="hf-fl0f" class="f13-note">
+        The nonce commits to the signing key and the vault, not to X25519
+      </div>
+      <div data-hf-id="hf-yjo1" class="f13-note2">
+        We would rather state the boundary than let you find it
+      </div>
+    </div>
+
+    <!-- ══ track 6 — LIMITATION TWO (VO 19, 13.9–22.15) ════════════════════ -->
+    <div data-hf-id="hf-q04d" class="clip f13-lim2" data-start="13.9" data-duration="8.85" data-track-index="6">
+      <div data-hf-id="hf-jqti" class="f13-mono f13-w-kicker" data-layout-allow-overlap>Withdrawals</div>
+      <div data-hf-id="hf-wwpq" class="f13-w-head" data-layout-allow-overlap>never gated.</div>
+
+      <div data-hf-id="hf-3r69" class="f13-w-rule"></div>
+
+      <div data-hf-id="hf-41ni" class="f13-negs">
+        <div data-hf-id="hf-zzj7" class="f13-neg f13-m"><span data-hf-id="hf-f8on" class="f13-mi">not by the enclave</span></div>
+        <div data-hf-id="hf-sgwz" class="f13-neg f13-m"><span data-hf-id="hf-8zj7" class="f13-mi">not by the operator</span></div>
+        <div data-hf-id="hf-s2ly" class="f13-neg f13-m"><span data-hf-id="hf-xxz9" class="f13-mi">not by a pause switch</span></div>
+      </div>
+
+      <div data-hf-id="hf-eqrt" class="f13-closer f13-m"><span data-hf-id="hf-za7f" class="f13-mi">there isn't one.</span></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      /* GSAP is loaded synchronously by the host document (index.html head) */
+      var g = window.gsap;
+      window.__timelines = window.__timelines || {};
+      var tl = g.timeline({ paused: true });
+      var CUT = 13.9;
+
+      /* hard cut: instant opacity, no slide — "the cut does the work" */
+      function cut(sel, at, dur, to) {
+        tl.fromTo(
+          sel,
+          { opacity: 0 },
+          { opacity: to === undefined ? 1 : to, duration: dur, ease: "none" },
+          at
+        );
+      }
+      /* line-masked reveal — the inner rises inside an overflow-hidden mask */
+      function rise(sel, at, dur, stagger, to) {
+        tl.fromTo(
+          sel,
+          { yPercent: 106, opacity: 0 },
+          {
+            yPercent: 0,
+            opacity: to === undefined ? 1 : to,
+            duration: dur,
+            ease: "power3.out",
+            stagger: stagger || 0
+          },
+          at
+        );
+      }
+      /* hairline draws itself, left origin */
+      function draw(sel, at, dur, origin) {
+        if (origin) g.set(sel, { transformOrigin: origin });
+        tl.fromTo(sel, { scaleX: 0 }, { scaleX: 1, duration: dur, ease: "power2.out" }, at);
+      }
+
+      /* ── group gating: reinforces the .clip windows, never touches opacity ── */
+      tl.set(".f13-lim1", { visibility: "visible" }, 0);
+      tl.set(".f13-lim2", { visibility: "hidden" }, 0);
+      tl.set(".f13-chrome-n1", { visibility: "visible" }, 0);
+      tl.set(".f13-chrome-n2", { visibility: "hidden" }, 0);
+      tl.set(".f13-lim1", { visibility: "hidden" }, CUT);
+      tl.set(".f13-lim2", { visibility: "visible" }, CUT);
+      tl.set(".f13-chrome-n1", { visibility: "hidden" }, CUT);
+      tl.set(".f13-chrome-n2", { visibility: "visible" }, CUT);
+
+      /* ── 0.00 — HARD CUT into the limits section ─────────────────────────── */
+      cut(".f13-ground", 0, 0.08);
+      cut(".f13-plate", 0, 0.34, 0.55);
+      cut(".f13-scrim", 0, 0.08);
+      cut(".f13-rule-top", 0.02, 0.2, 1);
+      cut(".f13-rule-bot", 0.02, 0.2, 1);
+      cut(".f13-chrome-l", 0.02, 0.16);
+      cut(".f13-chrome-b", 0.02, 0.16);
+      cut(".f13-chrome-n1", 0.02, 0.16);
+      cut(".f13-kicker", 0.02, 0.14);
+      cut(".f13-head", 0.02, 0.14);
+
+      /* macro move: the corona breathes open under everything for 22s */
+      tl.fromTo(
+        ".f13-plate",
+        { scale: 1, x: 0, y: 0 },
+        { scale: 1.075, x: -24, y: -12, duration: 22.15, ease: "none" },
+        0
+      );
+
+      /* ── 1.30 — the second column opens ──────────────────────────────────── */
+      tl.fromTo(
+        ".f13-vrule",
+        { scaleY: 0 },
+        { scaleY: 1, duration: 0.55, ease: "power2.out" },
+        1.3
+      );
+      rise(".f13-collabel .f13-mi", 1.45, 0.5);
+      draw(".f13-r0", 1.72, 0.55);
+
+      /* ── 2.10 — "the attestation covers the signing key…" ─────────────────── */
+      rise(".f13-rowA .f13-rowname .f13-mi", 2.1, 0.6);
+      cut(".f13-rowA .f13-rowval", 2.34, 0.4);
+      draw(".f13-r1", 3.4, 0.5);
+
+      /* ── 3.75 — "…not the encryption key." the beat of limitation one ─────── */
+      rise(".f13-rowB .f13-rowname .f13-mi", 3.75, 0.6);
+      cut(".f13-rowB .f13-rowval", 3.98, 0.45);
+      draw(".f13-r2", 5.15, 0.5);
+
+      /* ── 5.60 — "…could read orders." the consequence, drawn ──────────────── */
+      rise(".f13-chain-a .f13-mi", 5.6, 0.5);
+      draw(".f13-arrow-line", 6.25, 0.38);
+      cut(".f13-arrow-head", 6.55, 0.18);
+      rise(".f13-chain-b .f13-mi", 6.8, 0.5);
+
+      /* ── 8.30 — attention moves off the section title onto the admission ──── */
+      tl.fromTo(
+        ".f13-recede",
+        { opacity: 1 },
+        { opacity: 0.5, duration: 0.9, ease: "power2.inOut" },
+        8.3
+      );
+      draw(".f13-band-rule", 8.3, 0.75);
+      cut(".f13-passive", 8.8, 0.45);
+
+      /* ── 9.10 — "an active, detectable act" — per-word, 100ms stagger ─────── */
+      rise(".f13-clause .f13-wi", 9.1, 0.55, 0.1);
+
+      /* ── 10.35 — the one use of chromosphere red in this frame ────────────── */
+      draw(".f13-underline", 10.35, 0.5);
+
+      /* ── 11.25 — the footnotes settle; then the frame holds and admits it ── */
+      cut(".f13-note", 11.25, 0.6);
+      cut(".f13-note2", 12.5, 0.7);
+
+      /* ══ 13.90 — HARD CUT to the withdrawal statement (VO 19) ═════════════ */
+      cut(".f13-chrome-n2", CUT, 0.14);
+      cut(".f13-w-kicker", CUT + 0.02, 0.16);
+      tl.fromTo(
+        ".f13-w-head",
+        { opacity: 0, scale: 1.014 },
+        { opacity: 1, scale: 1, duration: 0.26, ease: "power2.out" },
+        CUT + 0.02
+      );
+
+      /* ── 15.35 — three-beat reveal, one per negation ──────────────────────── */
+      draw(".f13-w-rule", 15.35, 0.6, "center center");
+      rise(".f13-negs .f13-neg:nth-child(1) .f13-mi", 15.8, 0.55, 0, 0.82);
+      rise(".f13-negs .f13-neg:nth-child(2) .f13-mi", 17.2, 0.55, 0, 0.82);
+      rise(".f13-negs .f13-neg:nth-child(3) .f13-mi", 18.6, 0.55, 0, 0.82);
+
+      /* ── 20.35 — "…because there isn't one." the last word, and a hold ────── */
+      tl.fromTo(
+        ".f13-negs",
+        { opacity: 1 },
+        { opacity: 0.42, duration: 0.8, ease: "power2.inOut" },
+        20.35
+      );
+      rise(".f13-closer .f13-mi", 20.45, 0.7);
+
+      /* keep the timeline the full length of the frame */
+      tl.to(".f13-ground", { opacity: 1, duration: 0.01 }, 22.14);
+
+      window.__timelines["13-what-it-cant-do"] = tl;
+    })();
+  </script>
+</template>

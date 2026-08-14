@@ -18,7 +18,7 @@
 - voiceover: VO 03
 - blueprint: dataviz-countup
 - asset_candidates: 14-record-hero.png
-- pin: 10.45s — the $300 million counter must FINISH here — the word "million" (abs 20.89s)
+- pin: 10.63s — the $300 million counter must FINISH here — the word "million" (abs 20.89s)
 - vo_marks: VO 03 0.0–11.8s   (frame-relative, from the recorded read)
 - poster: 5
 

@@ -1,0 +1,471 @@
+<template>
+  <style>
+    /* ── Font: local file only, project-root relative. IBM Plex Mono 400. ──────
+       This frame is deliberately mono-only — no Bodoni. It is a terminal. */
+    @font-face {
+      font-family: "IBM Plex Mono";
+      font-style: normal;
+      font-weight: 400;
+      font-display: block;
+      src: url("capture/assets/fonts/d3ebbfd689654d3a-s.p.woff2") format("woff2");
+    }
+
+    /* ── Root ─────────────────────────────────────────────────────────────── */
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 400;
+      color: #f2eee8;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Full-bleed ground (its own clip layer, never #root) ──────────────── */
+    .f12-ground {
+      position: absolute;
+      inset: 0;
+      background: #06070b;
+    }
+
+    /* ── The real /proof page, ghosted almost to nothing under everything ─── */
+    .f12-ghost {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .f12-ghost-img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      display: block;
+      transform-origin: 960px 700px;
+      filter: blur(6px) saturate(0.15);
+    }
+    .f12-ghost-scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(6, 7, 11, 0.972);
+    }
+
+    /* ── Chrome ───────────────────────────────────────────────────────────── */
+    .f12-chrome {
+      position: absolute;
+      inset: 0;
+    }
+    .f12-mono {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 400;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #7b8290;
+      line-height: 1;
+    }
+    .f12-c-tl,
+    .f12-c-tr,
+    .f12-c-bl,
+    .f12-c-br {
+      position: absolute;
+      font-size: 15px;
+    }
+    .f12-c-tl {
+      left: 106px;
+      top: 74px;
+    }
+    .f12-c-tr {
+      right: 106px;
+      top: 74px;
+      text-align: right;
+      color: rgba(123, 130, 144, 0.8);
+    }
+    .f12-c-bl {
+      left: 106px;
+      top: 822px;
+    }
+    .f12-c-br {
+      right: 106px;
+      top: 822px;
+      text-align: right;
+      color: rgba(123, 130, 144, 0.8);
+    }
+
+    .f12-rule {
+      position: absolute;
+      height: 1px;
+      background: rgba(242, 238, 232, 0.13);
+      transform-origin: left center;
+    }
+    .f12-rule-top {
+      left: 106px;
+      top: 112px;
+      width: 1708px;
+    }
+    .f12-rule-bot {
+      left: 106px;
+      top: 796px;
+      width: 1708px;
+    }
+
+    /* ── Panels ───────────────────────────────────────────────────────────── */
+    .f12-panel {
+      position: absolute;
+      inset: 0;
+    }
+    .f12-head {
+      position: absolute;
+      top: 176px;
+      height: 20px;
+      overflow: hidden;
+    }
+    .f12-head-i {
+      display: block;
+      font-size: 17px;
+      line-height: 20px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .f12-idx {
+      color: #7b8290;
+      margin-right: 22px;
+    }
+    .f12-lab {
+      color: #f2eee8;
+    }
+    .f12-hrule {
+      top: 214px;
+    }
+    .f12-frule {
+      top: 676px;
+    }
+
+    /* the ash code surface — flat, 0 radius, 1px hairline */
+    .f12-plate {
+      position: absolute;
+      top: 262px;
+      height: 372px;
+      background: #0e1017;
+      border: 1px solid rgba(242, 238, 232, 0.075);
+      transform-origin: center top;
+    }
+    .f12-code {
+      position: absolute;
+      left: 34px;
+      top: 48px;
+    }
+    /* one 46px slot per terminal line; masks start at width 0 and step open */
+    .f12-ln {
+      position: absolute;
+      left: 0;
+      width: 0;
+      height: 46px;
+      overflow: hidden;
+    }
+    .f12-lc {
+      display: inline-block;
+      white-space: pre;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 400;
+      font-size: 17.5px;
+      line-height: 46px;
+      letter-spacing: 0;
+      font-variant-ligatures: none;
+    }
+    .f12-l0 { top: 0; }
+    .f12-l1 { top: 46px; }
+    .f12-l2 { top: 92px; }
+    .f12-l3 { top: 138px; }
+    .f12-l4 { top: 184px; }
+    .f12-l5 { top: 230px; }
+
+    /* token colours — restraint: three steps of bone, nothing else */
+    .f12-c { color: #f2eee8; }
+    .f12-a { color: rgba(242, 238, 232, 0.74); }
+    .f12-s { color: rgba(242, 238, 232, 0.9); }
+    .f12-o { color: #7b8290; }
+
+    /* the one use of red in this frame: the block caret, gone by the end */
+    .f12-caret {
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 10.5px;
+      height: 21px;
+      background: #e8442a;
+      opacity: 0;
+    }
+
+    /* what each command compares, as mono chrome */
+    .f12-tag {
+      position: absolute;
+      top: 702px;
+      font-size: 15px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: #7b8290;
+      line-height: 1;
+    }
+    .f12-eq {
+      color: rgba(242, 238, 232, 0.82);
+    }
+
+    /* panel 01 geometry */
+    .f12-p1 .f12-head,
+    .f12-p1 .f12-tag { left: 106px; }
+    .f12-p1 .f12-rule { left: 106px; width: 652px; }
+    .f12-p1 .f12-plate { left: 106px; width: 652px; }
+
+    /* panel 02 geometry */
+    .f12-p2 .f12-head,
+    .f12-p2 .f12-tag { left: 806px; }
+    .f12-p2 .f12-rule { left: 806px; width: 1008px; }
+    .f12-p2 .f12-plate { left: 806px; width: 1008px; }
+  </style>
+
+  <div id="root" data-composition-id="12-check-it-yourself" data-start="0" data-duration="7.44" data-width="1920" data-height="1080">
+    <!-- track 0 — void ground -->
+    <div class="clip f12-ground" data-start="0" data-duration="7.44" data-track-index="0"></div>
+
+    <!-- track 1 — the real /proof page, scrimmed to a texture -->
+    <div class="clip f12-ghost" data-start="0" data-duration="7.44" data-track-index="1">
+      <img class="f12-ghost-img" src="assets/17-proof-commands.png" alt="">
+      <div class="f12-ghost-scrim"></div>
+    </div>
+
+    <!-- track 2 — persistent chrome -->
+    <div class="clip f12-chrome" data-start="0" data-duration="7.44" data-track-index="2">
+      <div class="f12-rule f12-rule-top"></div>
+      <div class="f12-rule f12-rule-bot"></div>
+      <div class="f12-mono f12-c-tl">Verify it yourself</div>
+      <div class="f12-mono f12-c-tr">Coston2 testnet</div>
+      <div class="f12-mono f12-c-bl">Umbra</div>
+      <div class="f12-mono f12-c-br">Public registry &middot; anonymous reads</div>
+    </div>
+
+    <!-- ══ track 3 — COMMAND 01 (0.0–3.7) ═════════════════════════════════ -->
+    <div class="clip f12-panel f12-p1" data-start="0" data-duration="7.44" data-track-index="3">
+      <div class="f12-head"><span class="f12-head-i"><span class="f12-idx">01</span><span class="f12-lab">Anchor matches the enclave</span></span></div>
+      <div class="f12-rule f12-hrule"></div>
+
+      <div class="f12-plate">
+        <div class="f12-code">
+          <div class="f12-ln f12-l0" data-layout-allow-overflow><span class="f12-lc"><span class="f12-c">curl</span><span class="f12-a"> -s http://136.112.118.220:8080/attestation</span><span class="f12-o"> \</span></span></div>
+          <div class="f12-ln f12-l1" data-layout-allow-overflow><span class="f12-lc"><span class="f12-a">  </span><span class="f12-o">|</span><span class="f12-a"> </span><span class="f12-c">jq</span><span class="f12-a"> -r .raw </span><span class="f12-o">|</span><span class="f12-a"> </span><span class="f12-c">tr</span><span class="f12-a"> -d </span><span class="f12-s">'\n'</span><span class="f12-a"> </span><span class="f12-o">|</span><span class="f12-a"> </span><span class="f12-c">cast</span><span class="f12-a"> keccak</span></span></div>
+          <div class="f12-ln f12-l3" data-layout-allow-overflow><span class="f12-lc"><span class="f12-c">cast</span><span class="f12-a"> call 0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4</span><span class="f12-o"> \</span></span></div>
+          <div class="f12-ln f12-l4" data-layout-allow-overflow><span class="f12-lc"><span class="f12-a">  </span><span class="f12-s">"attestationHash()(bytes32)"</span><span class="f12-o"> \</span></span></div>
+          <div class="f12-ln f12-l5" data-layout-allow-overflow><span class="f12-lc"><span class="f12-a">  --rpc-url https://coston2-api.flare.network/ext/C/rpc</span></span></div>
+          <i class="f12-caret"></i>
+        </div>
+      </div>
+
+      <div class="f12-rule f12-frule"></div>
+      <div class="f12-mono f12-tag">keccak(attestation) <span class="f12-eq">==</span> attestationHash()</div>
+    </div>
+
+    <!-- ══ track 4 — COMMAND 02 (3.7–7.4) ═════════════════════════════════ -->
+    <div class="clip f12-panel f12-p2" data-start="0" data-duration="7.44" data-track-index="4">
+      <div class="f12-head"><span class="f12-head-i"><span class="f12-idx">02</span><span class="f12-lab">Running image is the published source</span></span></div>
+      <div class="f12-rule f12-hrule"></div>
+
+      <div class="f12-plate">
+        <div class="f12-code">
+          <div class="f12-ln f12-l0" data-layout-allow-overflow><span class="f12-lc"><span class="f12-c">curl</span><span class="f12-a"> -s http://136.112.118.220:8080/attestation</span><span class="f12-o"> | </span><span class="f12-c">jq</span><span class="f12-a"> -r .image_digest</span></span></div>
+          <div class="f12-ln f12-l2" data-layout-allow-overflow><span class="f12-lc"><span class="f12-c">crane</span><span class="f12-a"> export</span><span class="f12-o"> \</span></span></div>
+          <div class="f12-ln f12-l3" data-layout-allow-overflow><span class="f12-lc"><span class="f12-a">  us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c994...</span><span class="f12-o"> - \</span></span></div>
+          <div class="f12-ln f12-l4" data-layout-allow-overflow><span class="f12-lc"><span class="f12-a">  </span><span class="f12-o">| </span><span class="f12-c">tar</span><span class="f12-a"> -xO app/matching.py</span><span class="f12-o"> | </span><span class="f12-c">diff</span><span class="f12-a"> - engine/app/matching.py</span></span></div>
+          <i class="f12-caret"></i>
+        </div>
+      </div>
+
+      <div class="f12-rule f12-frule"></div>
+      <div class="f12-mono f12-tag">image app/matching.py <span class="f12-eq">==</span> engine/app/matching.py</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      /* GSAP is loaded synchronously by the host document */
+      var g = window.gsap;
+      var FRAME = "12-check-it-yourself";
+
+      window.__timelines = window.__timelines || {};
+      var tl = g.timeline({ paused: true });
+
+      var CH = 10.5; /* IBM Plex Mono advance = 0.6em at 17.5px — exact */
+      var LH = 46; /* one terminal line slot */
+      var CPS = 84; /* chars/sec — 462 verbatim chars have to land inside 7.44s */
+      var NL = 0.05; /* newline beat */
+      var CMD = 0.2; /* the pause between the two shell invocations */
+      var END = 7.44;
+
+      /* stepped ease: a pure function of progress, so it is seek-exact.
+         value = ceil(p*n)/n  ->  the mask lands on whole-character multiples. */
+      function steps(n) {
+        return function (p) {
+          return p <= 0 ? 0 : p >= 1 ? 1 : Math.ceil(p * n) / n;
+        };
+      }
+
+      /* type ONE line: the mask steps open and the caret steps with it */
+      function typeLine(panel, slot, chars, at) {
+        var w = chars * CH;
+        var d = chars / CPS;
+        var e = steps(chars);
+        tl.fromTo(
+          panel + " .f12-l" + slot,
+          { width: 0 },
+          { width: w, duration: d, ease: e, immediateRender: false },
+          at
+        );
+        tl.set(panel + " .f12-caret", { y: slot * LH, x: 0, opacity: 1 }, at);
+        tl.fromTo(
+          panel + " .f12-caret",
+          { x: 0 },
+          { x: w, duration: d, ease: e, immediateRender: false },
+          at
+        );
+        return at + d;
+      }
+
+      /* draw / cut are always the FIRST tween on that element's property, so
+         immediateRender stamps the hidden base state at build — no CSS
+         transform is ever authored on a GSAP-animated element. Every LATER
+         fromTo on an already-tweened property passes immediateRender:false. */
+      function draw(sel, at, dur) {
+        tl.fromTo(sel, { scaleX: 0 }, { scaleX: 1, duration: dur, ease: "expo.out" }, at);
+      }
+      function cut(sel, at, dur, to, stagger) {
+        tl.fromTo(
+          sel,
+          { opacity: 0 },
+          {
+            opacity: to === undefined ? 1 : to,
+            duration: dur,
+            ease: "none",
+            stagger: stagger || 0
+          },
+          at
+        );
+      }
+
+      /* ═══ 0.00 — the surface arrives ═══════════════════════════════════ */
+      cut(".f12-ground", 0, 0.06);
+      cut(".f12-ghost", 0, 0.5);
+      /* the only camera in the frame: a slow push on the ghosted page */
+      tl.fromTo(
+        ".f12-ghost-img",
+        { scale: 1, y: 0 },
+        { scale: 1.05, y: -10, duration: END, ease: "none" },
+        0
+      );
+
+      draw(".f12-rule-top", 0.04, 0.55);
+      draw(".f12-rule-bot", 0.1, 0.65);
+      cut([".f12-c-tl", ".f12-c-tr"], 0.06, 0.22, 1, 0.05);
+      cut(".f12-c-bl", 0.2, 0.3);
+
+      /* both plates open at once — the frame states "two checks" immediately */
+      tl.fromTo(
+        ".f12-p1 .f12-plate",
+        { scaleY: 0 },
+        { scaleY: 1, duration: 0.36, ease: "power3.out" },
+        0.1
+      );
+      tl.fromTo(
+        ".f12-p2 .f12-plate",
+        { scaleY: 0 },
+        { scaleY: 1, duration: 0.36, ease: "power3.out" },
+        0.16
+      );
+      /* panel 02 sits dormant until its beat */
+      cut(".f12-p2 .f12-plate", 0.16, 0.3, 0.5);
+
+      tl.fromTo(
+        ".f12-p1 .f12-head-i",
+        { yPercent: 110, opacity: 0 },
+        { yPercent: 0, opacity: 1, duration: 0.44, ease: "power3.out" },
+        0.16
+      );
+      draw(".f12-p1 .f12-hrule", 0.24, 0.5);
+
+      cut(".f12-p2 .f12-head-i", 0.3, 0.35, 0.3);
+      draw(".f12-p2 .f12-hrule", 0.36, 0.5);
+      cut(".f12-p2 .f12-hrule", 0.36, 0.35, 0.3);
+
+      /* ═══ 0.26–3.36 — COMMAND 01 types itself in ══════════════════════ */
+      var t = 0.26;
+      t = typeLine(".f12-p1", 0, 49, t) + NL;
+      t = typeLine(".f12-p1", 1, 41, t) + CMD;
+      t = typeLine(".f12-p1", 3, 54, t) + NL;
+      t = typeLine(".f12-p1", 4, 32, t) + NL;
+      t = typeLine(".f12-p1", 5, 55, t);
+
+      /* the caret leaves — nothing blinks after the command is complete */
+      tl.set(".f12-p1 .f12-caret", { opacity: 0 }, t + 0.03);
+
+      /* ═══ 3.42 — what command 01 compares ═════════════════════════════ */
+      draw(".f12-p1 .f12-frule", 3.42, 0.45);
+      tl.fromTo(
+        ".f12-p1 .f12-tag",
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.38, ease: "power2.out" },
+        3.5
+      );
+
+      /* ═══ 3.56 — the hinge: attention hands over to panel 02 ══════════ */
+      tl.fromTo(
+        ".f12-p2 .f12-plate",
+        { opacity: 0.5 },
+        { opacity: 1, duration: 0.34, ease: "power2.out", immediateRender: false },
+        3.56
+      );
+      tl.fromTo(
+        ".f12-p1 .f12-head-i",
+        { opacity: 1 },
+        { opacity: 0.46, duration: 0.5, ease: "power2.inOut", immediateRender: false },
+        3.56
+      );
+      tl.fromTo(
+        ".f12-p2 .f12-head-i",
+        { opacity: 0.3 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false },
+        3.6
+      );
+      tl.fromTo(
+        ".f12-p2 .f12-hrule",
+        { opacity: 0.3 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false },
+        3.6
+      );
+      cut(".f12-c-br", 3.6, 0.35);
+
+      /* ═══ 3.74–6.79 — COMMAND 02 types itself in ══════════════════════ */
+      t = 3.74;
+      t = typeLine(".f12-p2", 0, 69, t) + CMD;
+      t = typeLine(".f12-p2", 2, 14, t) + NL;
+      t = typeLine(".f12-p2", 3, 89, t) + NL;
+      t = typeLine(".f12-p2", 4, 59, t);
+
+      tl.set(".f12-p2 .f12-caret", { opacity: 0 }, t + 0.03);
+
+      /* ═══ 6.86 — what command 02 compares, and the frame settles ══════ */
+      draw(".f12-p2 .f12-frule", 6.86, 0.42);
+      tl.fromTo(
+        ".f12-p2 .f12-tag",
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.36, ease: "power2.out" },
+        6.96
+      );
+
+      /* hold the timeline to the full frame length */
+      tl.to(".f12-ground", { opacity: 1, duration: 0.01 }, END - 0.01);
+
+      window.__timelines[FRAME] = tl;
+    })();
+  </script>
+</template>

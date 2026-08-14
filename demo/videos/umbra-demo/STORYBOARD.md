@@ -1,6 +1,6 @@
 ---
 format: 1920x1080
-duration: 148s
+duration: 177s
 message: You should not have to trust a dark pool operator — Umbra makes the two claims worth lying about checkable before the trade.
 arc: Promise → Betrayal → Turn → Mechanism → Proof → Limits → Close
 audience: Flare Summer Signal judges; XRPfi funds and OTC desks
@@ -21,8 +21,8 @@ Voiceover is **verbatim** from `../../voiceover-script.md`. Line numbers below (
 ## Frame 1 — The promise
 
 - src: compositions/frames/01-the-promise.html
-- status: outline
-- duration: 10.44s
+- status: animated
+- duration: 10.26s
 - transition_in: cut
 - scene: A crescent resolves out of black. What a dark pool is for, and the catch.
 - voiceover: VO 01 + VO 02
@@ -50,14 +50,14 @@ Do **not** show the headline "Nobody ever caught them" here. It is stronger as a
 ## Frame 2 — Eight venues
 
 - src: compositions/frames/02-eight-venues.html
-- status: outline
+- status: animated
 - duration: 11.86s
-- transition_in: eclipse-wipe
+- transition_in: blur-crossfade
 - scene: The enforcement record, stated as a headline. $300 million.
 - voiceover: VO 03
 - blueprint: dataviz-countup
 - asset_candidates: 14-record-hero.png
-- pin: 10.45s — the $300 million counter must FINISH here — the word "million" (abs 20.89s)
+- pin: 10.63s — the $300 million counter must FINISH here — the word "million" (abs 20.89s)
 - vo_marks: VO 03 0.0–11.8s   (frame-relative, from the recorded read)
 - poster: 5
 
@@ -77,7 +77,7 @@ The count must finish **on** the spoken word "dollars", not before it.
 ## Frame 3 — What they actually did
 
 - src: compositions/frames/03-what-they-did.html
-- status: outline
+- status: animated
 - duration: 15.06s
 - transition_in: cut
 - scene: Three cases land one at a time, with their fines.
@@ -103,7 +103,7 @@ everything else is bone and dim.
 ## Frame 4 — Nobody caught it
 
 - src: compositions/frames/04-nobody-caught-it.html
-- status: outline
+- status: animated
 - duration: 19.2s
 - transition_in: cut
 - scene: The rows dim out to nothing. The sentence that was always the charge.
@@ -131,9 +131,9 @@ Hold the last frame a full beat after the line ends. Do not cut on the word.
 ## Frame 5 — What an umbra is
 
 - src: compositions/frames/05-what-an-umbra-is.html
-- status: outline
+- status: animated
 - duration: 7.79s
-- transition_in: eclipse-wipe
+- transition_in: blur-crossfade
 - scene: Totality. The name explained.
 - voiceover: VO 07
 - blueprint: titlecard-reveal
@@ -156,7 +156,7 @@ This is the film's still centre. Resist adding anything.
 ## Frame 6 — Escrow and sign
 
 - src: compositions/frames/06-escrow-and-sign.html
-- status: outline
+- status: animated
 - duration: 6.69s
 - transition_in: cut
 - scene: The Trade screen. Real FTSOv2 price ticking, REAL TEE strip.
@@ -181,7 +181,7 @@ Do not fake a cursor typing. The form is already filled in the capture; move the
 ## Frame 7 — Sealed
 
 - src: compositions/frames/07-sealed.html
-- status: outline
+- status: animated
 - duration: 8.97s
 - transition_in: cut
 - scene: What actually leaves the browser. Ciphertext.
@@ -207,7 +207,7 @@ product does. Keep it under one second and never repeat it.
 ## Frame 8 — The Dark Book
 
 - src: compositions/frames/08-dark-book.html
-- status: outline
+- status: animated
 - duration: 13.37s
 - transition_in: cut
 - scene: Two real sealed orders resting. Everything the operator holds.
@@ -234,7 +234,7 @@ was captured.
 ## Frame 9 — The batch
 
 - src: compositions/frames/09-the-batch.html
-- status: outline
+- status: animated
 - duration: 9.23s
 - transition_in: cut
 - scene: Trigger batch. The enclave opens the orders.
@@ -260,14 +260,14 @@ else in the film.
 ## Frame 10 — Zero of fifty
 
 - src: compositions/frames/10-zero-of-fifty.html
-- status: outline
+- status: animated
 - duration: 16.8s
 - transition_in: cut
 - scene: Batch #11 settled. The vault checked the price itself.
 - voiceover: VO 13 + VO 14
 - blueprint: dataviz-countup
 - asset_candidates: 08-settled-result.png
-- pin: 9.9s — the deviation counter must land on 0 here — the word "zero" (abs 112.51s)
+- pin: 10.08s — the deviation counter must land on 0 here — the word "zero" (abs 112.51s)
 - vo_marks: VO 13 0.0–10.4s · VO 14 10.4–16.8s   (frame-relative, from the recorded read)
 - poster: 8
 
@@ -290,14 +290,14 @@ The counter must land on `0` under the spoken word "zero", not before.
 ## Frame 11 — Signed by someone else
 
 - src: compositions/frames/11-signed-by-someone-else.html
-- status: outline
+- status: animated
 - duration: 18.38s
-- transition_in: eclipse-wipe
+- transition_in: blur-crossfade
 - scene: The attestation, and the on-chain anchor matching.
 - voiceover: VO 15 + VO 16
 - blueprint: comparison-split
 - asset_candidates: 13-verify.png
-- pin: 17.67s — the ✓ MATCH chip must resolve here — the word "matched" (abs 137.08s)
+- pin: 17.85s — the ✓ MATCH chip must resolve here — the word "matched" (abs 137.08s)
 - vo_marks: VO 15 0.0–11.4s · VO 16 11.4–18.4s   (frame-relative, from the recorded read)
 - poster: 10
 
@@ -317,7 +317,7 @@ Land **✓ MATCH** on the word "matched". This is the film's second-strongest mo
 ## Frame 12 — Check it yourself
 
 - src: compositions/frames/12-check-it-yourself.html
-- status: outline
+- status: animated
 - duration: 7.44s
 - transition_in: cut
 - scene: The two verification commands. Public registry.
@@ -342,7 +342,7 @@ type size instead.
 ## Frame 13 — What it can't do
 
 - src: compositions/frames/13-what-it-cant-do.html
-- status: outline
+- status: animated
 - duration: 22.15s
 - transition_in: cut
 - scene: The honest limits. The differentiator.
@@ -369,9 +369,9 @@ frame that makes the rest credible.
 ## Frame 14 — Don't trust it
 
 - src: compositions/frames/14-dont-trust-it.html
-- status: outline
-- duration: 9.34s
-- transition_in: eclipse-wipe
+- status: animated
+- duration: 9.52s
+- transition_in: blur-crossfade
 - scene: The counts, the network, the close.
 - voiceover: VO 20
 - blueprint: titlecard-reveal
@@ -398,10 +398,7 @@ End on void, not on a logo. Let the last thing be the dark.
 needs somewhere to fall off to. Every full-bleed background rides its own `class="clip"` layer, never
 `#root`.
 
-**The eclipse is the transition.** `transition_in: eclipse-wipe` means an occluding disc travels
-across the frame and the next scene is revealed behind its trailing edge — the brand's own metaphor
-doing the cutting. Duration 1.0s, `expo.out`. Used exactly four times: Frames 2, 5, 11, 14. Every
-other seam is a hard cut. A wipe on every cut would make it wallpaper.
+**The eclipse is the transition — inside the frames, not between them.** The inject registry is a fixed set (`crossfade`, `blur-crossfade`, `push-slide`, `zoom-through`, `squeeze`) that animates only transform/opacity/filter on the two frame wrappers, with no overlay DOM — so an occluding disc travelling across a seam cannot be built there. Rather than fake it, the four soft seams (Frames 2, 5, 11, 14) use **`blur-crossfade`**, which is calm and suits a dark film, and the eclipse motion stays where it is real: Frame 5 slides the occluder to totality, Frame 14 opens it again. Every other seam is a hard cut.
 
 **Colour discipline.** Chromosphere red `#E8442A` appears on: the $300M figure, the fines, the
 `0 bps` counter, the ✓ MATCH chip, and one underline in Frame 13. Nowhere else. If a frame has two
