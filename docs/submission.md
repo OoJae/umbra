@@ -67,11 +67,21 @@ things a machine checks **before** the trade rather than a regulator litigates y
   Omega — a prop desk quietly trading against subscribers — would require a different image, and the
   image is named in a Google-signed token we do not author.
 
-  Stated with its current limit, since this is the claim most worth attacking: the digest identifies
-  the image, but our container registry is not world-readable, so a third party cannot yet pull that
-  exact image and diff it against this repo. Verifying the digest *means* something today because
-  Google asserts it; verifying that the digest corresponds to *this source* still requires trusting
-  us. Publishing the image and a reproducible build is the fix, and it is small.
+  **And you can check that the digest corresponds to this source, because the registry is public.**
+  No credentials, no Google account:
+
+  ```bash
+  # the digest the enclave attests to, straight from the token
+  curl -s http://136.112.118.220:8080/attestation | jq -r .image_digest
+  # pull that exact image anonymously and read what is inside it
+  crane export us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c994… - \
+    | tar -xO app/matching.py | diff - engine/app/matching.py
+  ```
+
+  That closes the loop most TEE write-ups leave open: Google asserts *which image* is running, and
+  anyone can now fetch that image and compare it to the code in this repository. The remaining gap is
+  honest to name — the build is not yet bit-for-bit reproducible, so you are checking the image
+  contents rather than rebuilding the digest yourself.
 
 **And a sealed-bid auction cannot be built with cryptography alone — somebody has to see the bids in
 order to match them.** That is why confidential compute here is not a feature bolted onto a trading
@@ -165,10 +175,10 @@ inside the hackathon window.
 | TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) (source-verified) |
 | FXRP (base) | [`0x0b6A3645c240605887a5532109323A3E12273dc7`](https://coston2-explorer.flare.network/address/0x0b6A3645c240605887a5532109323A3E12273dc7) |
 | USDT0 (quote) | [`0xC1A5B41512496B80903D1f32d6dEa3a73212E71F`](https://coston2-explorer.flare.network/address/0xC1A5B41512496B80903D1f32d6dEa3a73212E71F) |
-| TEE signer (attested) | [`0xcee433588CDB86Ff462095569A9E8D2625beA4DA`](https://coston2-explorer.flare.network/address/0xcee433588CDB86Ff462095569A9E8D2625beA4DA) |
-| Anchored attestation hash | `0xa8c32fdd5fd02334d3803fcb3f5e2fbf68747072e6be24c1c1f55d3985eb2864` |
+| TEE signer (attested) | [`0x1d9C5a793C501B5781bA8c0a58C7F983593d1913`](https://coston2-explorer.flare.network/address/0x1d9C5a793C501B5781bA8c0a58C7F983593d1913) |
+| Anchored attestation hash | `0xab08784b9e9cfbe63f2ef62ebeaf48c698f6888d777c8d41898e4debb1b5f991` |
 | Live engine | `http://136.112.118.220:8080` (Intel TDX Confidential Space VM) |
-| **Sample settlement tx** | [`0xd2e98820…`](https://coston2-explorer.flare.network/tx/0xd2e988201a9ad172750be4d88fd3cb04b2bcb9bb38399d53851ac3e3ae3a12a5) |
+| **Sample settlement tx** | [`0x869647b1…`](https://coston2-explorer.flare.network/tx/0x869647b14305e075da9d38a337aeceaaf4716b5f7cd241be835b92a766dc146e) |
 
 That settlement cleared at **$1.010878** against an on-chain FTSOv2 read of **$1.010878** — 0 bps
 of the 50 bps band, verified by the vault itself before it moved a single balance.
@@ -197,7 +207,7 @@ Verify the anchor yourself, independently of anything we claim:
 curl -s http://136.112.118.220:8080/attestation | jq -r .raw | tr -d '\n' | cast keccak
 cast call 0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4 "attestationHash()(bytes32)" \
   --rpc-url https://coston2-api.flare.network/ext/C/rpc
-# both -> 0xa8c32fdd5fd02334d3803fcb3f5e2fbf68747072e6be24c1c1f55d3985eb2864
+# both -> 0xab08784b9e9cfbe63f2ef62ebeaf48c698f6888d777c8d41898e4debb1b5f991
 ```
 
 ## How this differs from adjacent work

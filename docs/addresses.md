@@ -125,7 +125,7 @@ Both flavours are exercised by `contracts/src/ProbeFtsoV2.sol`, which compiles c
 |---|---|---|---|
 | TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) | [`0xba8633d2…`](https://coston2-explorer.flare.network/tx/0xba8633d2a8a5dfb92dfc73a02f310325f0b0bda8dc44f80843712fd987dccb23) | DEPLOYED + SOURCE VERIFIED |
 | UmbraVault | [`0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10`](https://coston2-explorer.flare.network/address/0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10) | [`0x6a0039c1…`](https://coston2-explorer.flare.network/tx/0x6a0039c142a9e0dedeb67954be073d3e8fff5e430e0147440fcd18a6697cc817) | DEPLOYED + SOURCE VERIFIED |
-| TEE signer | `0xcee433588CDB86Ff462095569A9E8D2625beA4DA` | anchored via `RegisterTee.s.sol` | REGISTERED — real Intel TDX enclave |
+| TEE signer | `0x1d9C5a793C501B5781bA8c0a58C7F983593d1913` | anchored via `RegisterTee.s.sol` | REGISTERED — real Intel TDX enclave |
 
 ### Confidential Space (Phase 2) — genuine Intel TDX, not simulated
 
@@ -140,8 +140,8 @@ the enclave**. The attestation is a real Google-signed vTPM token, not our simul
 | `swname` | `CONFIDENTIAL_SPACE` |
 | `secboot` | `true` |
 | `dbgstat` | **`disabled-since-boot`** (production `confidential-space` image family) |
-| `eat_nonce` | `0x2ba3bd6b8cb59dfacdb0b5392d6ef7dff9f3aac29730b926ccbed6f4413a804c` |
-| `submods.container.image_digest` | `sha256:1c5af92de02a7886b0d5be8e04474977888ab7997f5f0c0afeccd3a1f00a6c85` |
+| `eat_nonce` | `0x229931683e1c2acca0a47685d102b259bbe3e3b8fb465893bab14dd7fbf05f30` |
+| `submods.container.image_digest` | `sha256:6538c99447f578c28a5b583476c50609b3d4086df7dffb8b38a2dd74cef25f92` |
 
 Two independent bindings make this meaningful rather than decorative. The `eat_nonce` equals
 `keccak256(bytes20(teeAddress) ‖ bytes20(vaultAddress))`, so the token commits to *this* enclave
@@ -153,15 +153,15 @@ workload — so it says which code is actually running.
 | Engine (live) | `http://136.112.118.220:8080` |
 | GCP project | `umbra-tee-08132358` |
 | VM | `umbra-tee-1`, `c3-standard-4`, Intel TDX, `us-central1-a` |
-| Image | `us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:1c5af92d…` |
-| Anchored attestation hash | `0xa8c32fdd5fd02334d3803fcb3f5e2fbf68747072e6be24c1c1f55d3985eb2864` |
+| Image | `us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c994…` |
+| Anchored attestation hash | `0xab08784b9e9cfbe63f2ef62ebeaf48c698f6888d777c8d41898e4debb1b5f991` |
 
 Verify the anchor yourself, independently of the engine:
 
 ```bash
 curl -s http://136.112.118.220:8080/attestation | jq -r .raw | tr -d '\n' | cast keccak
 cast call $REGISTRY_ADDRESS "attestationHash()(bytes32)" --rpc-url $RPC
-# both -> 0xa8c32fdd5fd02334d3803fcb3f5e2fbf68747072e6be24c1c1f55d3985eb2864
+# both -> 0xab08784b9e9cfbe63f2ef62ebeaf48c698f6888d777c8d41898e4debb1b5f991
 ```
 
 (`tr -d '\n'` matters — `jq -r` appends a newline that would change the hash.)
@@ -175,6 +175,7 @@ cast call $REGISTRY_ADDRESS "attestationHash()(bytes32)" --rpc-url $RPC
 | 4 | real TDX, triggered through the **Vercel proxy** | [`0xf69e0077…`](https://coston2-explorer.flare.network/tx/0xf69e0077cfdbb6f88050a7e6ca6bcf035df47afceebc769fcaab88493ea32855) |
 | 6 | **production image**, E2E rehearsal run 1 | [`0x052bb9d1…`](https://coston2-explorer.flare.network/tx/0x052bb9d1c380c7d19c216e137a9e7a4abd1ff4069b030c7a7b8f2866f7a0ac34) |
 | 7 | **production image**, E2E rehearsal run 2 | [`0xd2e98820…`](https://coston2-explorer.flare.network/tx/0xd2e988201a9ad172750be4d88fd3cb04b2bcb9bb38399d53851ac3e3ae3a12a5) |
+| 8 | **current enclave** (`sha256:6538c994…`), post-audit relaunch | [`0x869647b1…`](https://coston2-explorer.flare.network/tx/0x869647b14305e075da9d38a337aeceaaf4716b5f7cd241be835b92a766dc146e) |
 
 The enclave was relaunched on the production `confidential-space` image family in Phase 4, which
 cleared the `dbgstat: enabled` caveat. That minted a new enclave key, so the signer and attestation

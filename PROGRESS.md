@@ -523,3 +523,50 @@ a TOCTOU on the reservation invariant.
    regress `dbgstat`) then `scripts/register_tee.sh` to re-anchor. It mints a new signer, so **the
    doc refresh must be the last step** — otherwise the corrected `eat_nonce` goes stale again, which
    is the exact finding being fixed.
+
+---
+
+## Phase 8 — enclave relaunch on the audited image (2026-08-14, ~09:30 UTC)
+
+Operator authorised the relaunch and making the Artifact Registry world-readable.
+
+**Registry is public.** Verified first that nothing sensitive ships in the image: the Dockerfile has
+no `COPY . .` — only `pyproject.toml`, `uv.lock` and `app/`, and every file under `app/` was
+confirmed tracked in the public repo. Secrets arrive at runtime via `tee-env`, never baked. Granted
+`roles/artifactregistry.reader` to `allUsers`; anonymous manifest pull returns HTTP 200 with no
+credentials. This turns the softened image claim back into a strong one: Google asserts which image
+runs, and anyone can now pull that exact digest and diff it against this repo. Stated with its
+remaining gap — the build is not bit-for-bit reproducible, so you compare contents rather than
+rebuild the digest.
+
+**Relaunch.** `destroy` → `launch` on `IMAGE_FAMILY=confidential-space` (persisted in `.gcp-env` in
+Phase 7, which is what stopped this from silently regressing to the debug image), static IP reused so
+no URL changed. New image `sha256:6538c994…` carries the batch-rollback fix, `GET /orders/{order_id}`,
+filled-vs-eligible status, and match-time deadline enforcement.
+
+Verified in order, each independently rather than from the engine's own report:
+
+| Check | Result |
+|---|---|
+| `hwmodel` / `swname` | `GCP_INTEL_TDX` / `CONFIDENTIAL_SPACE` |
+| `secboot` / `dbgstat` | `true` / **`disabled-since-boot`** (production image held) |
+| `image_digest` in token | `sha256:6538c994…`, equals what was launched |
+| `eat_nonce` | recomputed `keccak256(bytes20(newSigner) ‖ bytes20(vault))` by hand — **matches** |
+| `TeeRegistry.teeSigner()` | `0x1d9C5a793C501B5781bA8c0a58C7F983593d1913` |
+| `TeeRegistry.attestationHash()` | `0xab08784b…`, equals the engine's keccak of the raw token |
+| `GET /orders/{unknown}` | 404 `order_not_found` — the new endpoint is live |
+| End-to-end against live Coston2 | **42/42 checks passed**, batch 8, cleared 0 bps of 50 |
+| Sender of batch 8 | `0x1d9C5a79…` — the newly attested enclave, read from the tx itself |
+| Verify page | REAL TEE · ✓ MATCH · token validity **current** |
+
+**Docs refreshed last, deliberately.** The relaunch re-stales every attestation value, so refreshing
+before it would have re-broken the `eat_nonce` corrected in Phase 7 — the exact finding being fixed.
+Signer, attestation hash, image digest, `eat_nonce` and the sample settlement tx updated across
+README, addresses, submission and the shot list; the settlements history table gained batch 8 rather
+than overwriting batch 7. README's sample settlement now points at a tx signed by the *currently
+registered* signer, which was itself a Phase 7 finding.
+
+Prior signer `0xcee43358…` is retired. Its rotation is a public on-chain event, as designed.
+
+**Still open, and only these:** record the video (now safe — every on-screen hash matches the docs),
+and select **both** bounties on the DoraHacks form.

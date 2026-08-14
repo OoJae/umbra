@@ -114,5 +114,5 @@ https://umbra-beta.vercel.app/settlement.
 | Repo | https://github.com/OoJae/umbra |
 | UmbraVault | `0x9EFEc298a59c7F4B9C1f1De7116A701bf70f7A10` |
 | TeeRegistry | `0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4` |
-| TEE signer | `0xcee433588CDB86Ff462095569A9E8D2625beA4DA` |
-| Sample settlement | `0xd2e988201a9ad172750be4d88fd3cb04b2bcb9bb38399d53851ac3e3ae3a12a5` |
+| TEE signer | `0x1d9C5a793C501B5781bA8c0a58C7F983593d1913` |
+| Sample settlement | `0x869647b14305e075da9d38a337aeceaaf4716b5f7cd241be835b92a766dc146e` |

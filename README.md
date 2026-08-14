@@ -64,7 +64,7 @@ control. Confidential compute isn't a bolt-on here; it is the product.
 | TeeRegistry | [`0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4`](https://coston2-explorer.flare.network/address/0x1D67f6aa2b99843ae1ad1335778D94d590B97FB4) |
 | FXRP (base) | [`0x0b6A3645c240605887a5532109323A3E12273dc7`](https://coston2-explorer.flare.network/address/0x0b6A3645c240605887a5532109323A3E12273dc7) |
 | USDT0 (quote) | [`0xC1A5B41512496B80903D1f32d6dEa3a73212E71F`](https://coston2-explorer.flare.network/address/0xC1A5B41512496B80903D1f32d6dEa3a73212E71F) |
-| TEE signer (attested) | [`0xcee433588CDB86Ff462095569A9E8D2625beA4DA`](https://coston2-explorer.flare.network/address/0xcee433588CDB86Ff462095569A9E8D2625beA4DA) |
+| TEE signer (attested) | [`0x1d9C5a793C501B5781bA8c0a58C7F983593d1913`](https://coston2-explorer.flare.network/address/0x1d9C5a793C501B5781bA8c0a58C7F983593d1913) |
 
 **The TEE is real.** The engine runs in a Google Confidential Space VM on **Intel TDX**, and its
 settlement key was generated inside the enclave. The attestation is a Google-signed RS256 vTPM
@@ -72,9 +72,22 @@ token (`hwmodel: GCP_INTEL_TDX`, `secboot: true`), whose nonce commits to exactl
 and this vault, and whose image digest is asserted by the launcher rather than by our own code.
 Live engine: `http://136.112.118.220:8080` · sample settlement signed inside the enclave by the
 **currently registered** signer:
-[`0xd2e98820…`](https://coston2-explorer.flare.network/tx/0xd2e988201a9ad172750be4d88fd3cb04b2bcb9bb38399d53851ac3e3ae3a12a5)
+[`0x869647b1…`](https://coston2-explorer.flare.network/tx/0x869647b14305e075da9d38a337aeceaaf4716b5f7cd241be835b92a766dc146e)
 (earlier settlements in [docs/addresses.md](docs/addresses.md) were signed by prior enclave keys —
 every boot mints a fresh one, and each rotation is a public on-chain event.)
+
+**The attested image is public, so you can check the digest against this source.** The registry
+allows anonymous reads — no credentials, no Google account:
+
+```bash
+curl -s http://136.112.118.220:8080/attestation | jq -r .image_digest   # what Google says is running
+crane export us-central1-docker.pkg.dev/umbra-tee-08132358/umbra/umbra-engine@sha256:6538c994… - \
+  | tar -xO app/matching.py | diff - engine/app/matching.py             # and what is inside it
+```
+
+Google asserts *which* image runs; the public registry lets you see what is *in* that image. The
+honest remaining gap is that the build is not yet bit-for-bit reproducible, so you are comparing
+image contents rather than rebuilding the digest yourself.
 
 Every address was verified on-chain rather than copied from documentation; the derivation and the
 re-runnable verification command for each are in [docs/addresses.md](docs/addresses.md).
