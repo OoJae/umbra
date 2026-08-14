@@ -100,11 +100,12 @@ Installed via npm into `contracts/node_modules`; remapped in `contracts/remappin
 | `TestFtsoV2Interface.getFeedById` | **`external view`** — free | VERIFIED |
 | Required pragma | `FtsoV2Interface.sol` declares `pragma solidity ^0.8.25` | VERIFIED |
 
-### Consequences for the contracts (deviations from the guide, live-source wins)
+### Consequences for the contracts (live source wins over the plan)
 
-1. **solc bumped `^0.8.20` → `0.8.25`.** CLAUDE.md and build-guide §3 specify ^0.8.20, but the
-   installed periphery cannot compile below 0.8.25. CLAUDE.md's own precedence rule ("live docs
-   win, then record it here") authorizes this.
+1. **solc bumped `^0.8.20` → `0.8.25`.** The build plan specified ^0.8.20, but the installed Flare
+   periphery cannot compile below 0.8.25 — `FtsoV2Interface.sol` declares `pragma solidity ^0.8.25`
+   itself. Where the plan and the live package disagree, the package wins and the deviation gets
+   recorded here.
 2. **The vault's oracle read cannot be a `view` function.** The production
    `FtsoV2Interface.getFeedById` is `payable`/non-view, so the internal virtual oracle helper that
    `settleBatch` calls must be non-view too. That is fine — `settleBatch` is state-changing

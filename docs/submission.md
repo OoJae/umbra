@@ -2,22 +2,6 @@
 
 Paste-ready answers for each field. Every address, hash and link below is live on Coston2.
 
-> ## ⚠️ Before pasting — three things only the operator can do
->
-> **Delete this block once they are done. Everything below it is safe to paste verbatim.**
->
-> 1. **Upload the film and paste its URL** into the Video field below.
->    `demo/videos/umbra-demo/renders/video.mp4` — 2m57s, 1920×1080, 45MB.
->    Upload `renders/umbra-demo.srt` as its caption track too; the film is full of proper nouns and
->    hashes that are hard to catch by ear.
-> 2. **Select BOTH bounties.** The form asks for "bounti**es**", plural. Bounty 2 (Confidential
->    Compute) is the primary; Bounty 1 (Interoperable Asset Products) is legitimate too because
->    settlement is in FXRP. Two independent $4,000 first places for one extra field.
-> 3. **Check the Dark Book has orders resting** before submitting, at
->    https://umbra-beta.vercel.app/app — a settled batch discards every order it drained, so the book
->    empties behind whoever triggers it first. `python scripts/seed_orders.py --base-amount 1.5`
->    (add `--reverse` on alternate runs) puts a fresh pair in.
-
 ---
 
 ## Project name
@@ -112,7 +96,7 @@ leaves the enclave, and whose pricing is checked by a contract it does not contr
 - The Verify page, Dark Book and settled batches are read-only and work in any browser. **Placing an
   order needs a desktop browser with MetaMask** on Coston2 (chain 114); the wallet config uses the
   injected connector only, with no WalletConnect QR path, so mobile is read-only.
-- **Video:** _(paste the uploaded URL — see the pre-flight block at the top of this file)_
+- **Video:** _(link)_
 
 ### Reviewing this without a wallet
 

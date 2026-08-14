@@ -295,9 +295,9 @@ tests, and a 41-assertion end-to-end rehearsal against live Coston2.
 ## More
 
 - [docs/submission.md](docs/submission.md) — the full write-up
-- [docs/addresses.md](docs/addresses.md) — every address with the command that verified it
-- [docs/video-shot-list.md](docs/video-shot-list.md) — demo walkthrough
-- [PROGRESS.md](PROGRESS.md) — the build log, including every decision and why
+- [docs/addresses.md](docs/addresses.md) — every address, with the command that verified it
+- [docs/eip712.json](docs/eip712.json) — the one typed-data definition Solidity, Python and the
+  browser all conform to, plus a fixture that locks them to a byte-identical signature
 
 ## License
 

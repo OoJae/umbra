@@ -59,3 +59,14 @@ demo/videos/*/__*.js
 
 demo/logo/*.png binary asset is small and IS tracked (it is a deliverable)
 !demo/logo/*.png
+
+# ── Internal working files. Kept locally, out of the public repo. ──────────────
+# This repo is the front door for hackathon judges. Build logs, agent standing
+# orders, the planning spec and the whole video-production tree are working
+# material, not the product — and the raw voiceover is a personal recording.
+CLAUDE.md
+PROGRESS.md
+.gcp-env
+docs/umbra-build-guide.md
+docs/video-shot-list.md
+demo/
