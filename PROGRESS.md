@@ -246,10 +246,52 @@ reports `hash_matches: true, signer_matches: true`. Full details in `docs/addres
   discloses that order's side. The build guide mandates this shape; it is stated in the README
   rather than hidden.
 
+---
+
+## Phase 3 (Frontend) — deployed and proven; H19 pending only the two-wallet rehearsal
+
+**Live app:** https://umbra-5a7rt8i83-oojaes-projects.vercel.app
+
+All four pages plus `/debug` are deployed and render live data. The strongest validation: the full
+gate script was re-run **through the production Vercel proxy** and passed **49/49**, settling on
+Coston2 from inside the TDX enclave (tx `0xf69e0077…`). So the entire public path — browser origin
+→ Vercel function → TDX engine → Flare — is proven, with only the MetaMask signature step
+unexercised.
+
+### DONE
+- **Proxy architecture.** A single catch-all Route Handler forwards to the engine server-side, so
+  the browser needs no CORS and there is no mixed-content problem, and `OPERATOR_TOKEN` never
+  reaches the client. Audited: the token value appears in no tracked file and no client bundle.
+- **Verify page earns its badge.** REAL-TEE requires `alg=RS256 && hwmodel=GCP_INTEL_TDX &&
+  secboot=true` and never falls through to "real" — a real TDX VM with a failed token fetch shows
+  an explicit amber DEGRADED. The anchor is recomputed in-browser with viem and compared against
+  `TeeRegistry`, with the engine's own claim shown beside it labelled "not trusted". Confirmed live:
+  ✓ MATCH, signer ✓, nonce binding ✓, zero console errors.
+- **Crypto self-test 7/7 in the deployed browser**, including "ciphertext contains none of the
+  plaintext".
+
+### DECISIONS
+- **CORS was NOT fixed, deliberately** — reversing an earlier call. Once everything is proxied
+  server-side the browser never consults CORS, so the middleware buys nothing, while rebuilding
+  the image would change its digest, invalidate the anchored attestation, and require re-anchoring
+  a working TDX enclave. Not worth the risk for zero gain. The trade-off it does create — anyone
+  with the URL can trigger a batch — is documented in the README rather than papered over.
+- **`force-dynamic` on the proxy is correctness.** Next would otherwise statically evaluate
+  `/api/engine/info` at build time and serve a frozen enclave pubkey forever, failing every order
+  with `bad_ciphertext`. Verified in production that the proxied pubkey matches the engine's live one.
+- **Fire-and-watch for batches.** The POST and an on-chain `lastBatchId` poll race each other, so a
+  serverless timeout on a settlement that actually landed still renders as success — the worst
+  possible thing to get wrong on camera.
+- **wagmi pinned to 2.19.5.** A plain `pnpm add wagmi` resolves to 3.7.6, which no RainbowKit
+  release supports. `createConfig` + `injected()` also avoids needing a WalletConnect projectId.
+- **Band semantics bug found and fixed.** The order form reported "inside the FTSOv2 band: no" for
+  a deliberately wide limit. That is backwards — the ±50bps band constrains the *clearing* price
+  against the oracle, not the trader's limit. It now reports whether the order crosses the mid,
+  which is the rule the matcher actually applies.
+- **`--reverse` on the demo script.** Each settled batch rotates Alice's and Bob's inventory, so
+  flipping direction lets the demo run indefinitely without returning to the faucet.
+
 ### NEXT
-- Phase 3 (H14–H19): Next.js pages — Trade (deposit/withdraw, EIP-712 sign, libsodium sealed-box,
-  Dark Book), Settlement, Verify (decode the real TDX attestation + on-chain anchor match, with a
-  REAL-TEE badge that is now genuinely earned), How-it-works.
-- `web/src/lib/crypto.ts` must decode the engine's X25519 key with
-  `sodium.base64_variants.ORIGINAL` — libsodium-wrappers defaults to URLSAFE_NO_PADDING and would
-  silently mis-decode the `+` and `/` characters.
+- **Operator step for the H19 gate:** import the ALICE and BOB private keys from `.env` into two
+  MetaMask profiles (throwaway testnet keys, already funded) and click the flow in both.
+- Phase 4: `scripts/e2e_demo.py` (still a stub), README/submission polish, demo recording.
